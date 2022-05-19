@@ -31,7 +31,7 @@
 // https://github.com/furrtek/VGChips/tree/master/Konami/052109
 //
 // Although this core is slowly approaching completion, the following features are currently unimplemented:
-// Background scrolling
+// Fine background x-scrolling
 // Screen flipping
 //
 // However, work is being done on those fronts, so don't lose hope here!
@@ -174,6 +174,13 @@ namespace beekonami::video
 		    scrolly_value = vram[0x180C];
 		}
 
+		uint32_t scrollx_offs = 0;
+
+		if (is_scx_interval[0])
+		{
+		    scrollx_offs = (row * 8);
+		}
+
 		uint32_t scrolly_start = (32 - (scrolly_value >> 3));
 		int scrolly_fine = (scrolly_value & 0x7);
 
@@ -198,10 +205,22 @@ namespace beekonami::video
 		int cab_pins = ((rom_bank >> 2) & 0x3);
 
 		uint32_t scroll_row = ((row + scrolly_start) & 0x1F);
-		uint32_t tile_offs = ((scroll_row * 64) + col);
 
 		for (int pixel = 0; pixel < 8; pixel++)
 		{
+		    // Currently a guess (albeit one based off of furrtek's schematics)
+		    if (is_scx_enable[0])
+		    {
+			scrollx_offs += pixel;
+		    }
+
+		    uint32_t scrollx_addr = (0x1A00 + (scrollx_offs * 2));
+		    uint16_t scrollx_value = (vram[scrollx_addr] | (testbit(vram[scrollx_addr + 1], 0) << 8));
+
+		    uint32_t scrollx_start = (64 - (scrollx_value >> 3));
+
+		    uint32_t scroll_col = ((col + scrollx_start) & 0x3F);
+		    uint32_t tile_offs = ((scroll_row * 64) + scroll_col);
 		    int pixel_ypos = ((pixel + scrolly_fine) & 0x7);
 		    int pixel_offs = ((tile_offs * 8) + pixel_ypos);
 		    int py = pixel;
@@ -245,6 +264,13 @@ namespace beekonami::video
 		    scrolly_value = vram[0x380C];
 		}
 
+		uint32_t scrollx_offs = 0;
+
+		if (is_scx_interval[1])
+		{
+		    scrollx_offs = (row * 8);
+		}
+
 		uint32_t scrolly_start = (32 - (scrolly_value >> 3));
 		int scrolly_fine = (scrolly_value & 0x7);
 
@@ -269,10 +295,22 @@ namespace beekonami::video
 		int cab_pins = ((rom_bank >> 2) & 0x3);
 
 		uint32_t scroll_row = ((row + scrolly_start) & 0x1F);
-		uint32_t tile_offs = ((scroll_row * 64) + col);
 
 		for (int pixel = 0; pixel < 8; pixel++)
 		{
+		    // Currently a guess (albeit one based off of furrtek's schematics)
+		    if (is_scx_enable[1])
+		    {
+			scrollx_offs += pixel;
+		    }
+
+		    uint32_t scrollx_addr = (0x3A00 + (scrollx_offs * 2));
+		    uint16_t scrollx_value = (vram[scrollx_addr] | (testbit(vram[scrollx_addr + 1], 0) << 8));
+
+		    uint32_t scrollx_start = (64 - (scrollx_value >> 3));
+
+		    uint32_t scroll_col = ((col + scrollx_start) & 0x3F);
+		    uint32_t tile_offs = ((scroll_row * 64) + scroll_col);
 		    int pixel_ypos = ((pixel + scrolly_fine) & 0x7);
 		    int pixel_offs = ((tile_offs * 8) + pixel_ypos);
 		    int py = pixel;
@@ -361,7 +399,11 @@ namespace beekonami::video
 	    case 0x1C80:
 	    {
 		cout << "Writing value of " << hex << int(data) << " to K052109 register of 1c80" << endl;
+		is_scx_enable[0] = testbit(data, 0);
+		is_scx_interval[0] = testbit(data, 1);
 		is_scy_enable[0] = testbit(data, 2);
+		is_scx_enable[1] = testbit(data, 3);
+		is_scx_interval[1] = testbit(data, 4);
 		is_scy_enable[1] = testbit(data, 5);
 	    }
 	    break;

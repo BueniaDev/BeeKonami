@@ -73,6 +73,8 @@ namespace beekonami
 		uint8_t reg_1D80 = 0;
 		uint8_t reg_1F00 = 0;
 
+		array<bool, 2> is_scx_enable = {false, false};
+		array<bool, 2> is_scx_interval = {false, false};
 		array<bool, 2> is_scy_enable = {false, false};
 
 		uint8_t gfx_rom_bank = 0;

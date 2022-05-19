@@ -31,7 +31,7 @@
 // https://github.com/furrtek/VGChips/tree/master/Konami/051962
 //
 // Although this core is slowly approaching completion, the following features are currently unimplemented:
-// Background scrolling
+// Fine background x-scrolling
 // Screen flipping
 //
 // However, work is being done on those fronts, so don't lose hope here!
