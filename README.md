@@ -1,6 +1,6 @@
 <img src="https://github.com/BueniaDev/BeeKonami/blob/main/res/beekonami-logo.png" alt="drawing" width="300"/>
 
-Konami chip emulation engine, kinda
+Konami custom IC emulation engine, kinda
 
 
 # License
