@@ -160,7 +160,9 @@ void render_layer(K052109 &tile_chip, K051962 &tile_gfx_chip, int layer_num, int
 	    uint32_t pixel_offs = (xpos + (ypos * 512));
 	    int gfx_addr = tile_buffer.at(pixel_offs);
 	    int tile_num = (gfx_addr & 0xF);
-	    int color_offs = gfx_addr;
+	    int color_base = (layer_num == 0) ? 0 : 8;
+	    int color_num = (color_base + ((gfx_addr >> 5) & 0x7));
+	    int color_offs = ((color_num * 16) + tile_num);
 
 	    bool priority = ((gfx_addr & 0x10) != 0);
 

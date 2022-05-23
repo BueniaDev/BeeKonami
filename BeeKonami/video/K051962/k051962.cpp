@@ -128,12 +128,12 @@ namespace beekonami::video
 	    int py = (pixel_index / 8);
 	    int px = (pixel_index % 8);
 
-	    int pixel_color = decode_tile(tile_addr, pixely, pixelx);
-
 	    if (is_flipx)
 	    {
-		px = (7 - px);
+		pixelx = (7 - pixelx);
 	    }
+
+	    int pixel_color = decode_tile(tile_addr, pixely, pixelx);
 
 	    int ypos = ((ycoord * 8) + py);
 	    int xpos = ((xcoord * 8) + px);
