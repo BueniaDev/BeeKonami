@@ -34,8 +34,7 @@ namespace beekonami
 {
     namespace video
     {
-	using gfxaddr = array<uint32_t, 0x4000>;
-	using tileaddr = array<gfxaddr, 3>;
+	using gfxaddr = array<uint32_t, 0x20000>;
 	using tilereadfunc = function<uint32_t(uint8_t, uint8_t, int)>;
 
 	class K052109
@@ -52,9 +51,7 @@ namespace beekonami
 		bool write(uint16_t addr, uint8_t data);
 		void set_rmrd_line(bool line);
 
-		bool is_xflip();
-
-		tileaddr render();
+		gfxaddr render(int layer_num);
 
 	    private:
 		template<typename T>

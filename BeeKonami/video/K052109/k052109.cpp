@@ -16,13 +16,13 @@
     along with BeeKonami.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-// BeeKonami-K052109 (WIP)
+// BeeKonami-K052109
 // Chip name: K052109
 // Chip description: Plane address generator
 //
 // BueniaDev's Notes:
-// This implementation is derived from both MAME's implementation and Furrtek's reverse-engineered schematics for this chip,
-// which can be found at the links below:
+// This implementation is inspired by MAME's implementation and derived from Furrtek's reverse-engineered schematics for this chip,
+// both of which can be found at the links below:
 //
 // MAME's implementation:
 // https://github.com/mamedev/mame/blob/master/src/mame/video/k052109.cpp
@@ -30,11 +30,8 @@
 // Furrtek's reverse-engineered schematics:
 // https://github.com/furrtek/VGChips/tree/master/Konami/052109
 //
-// Although this core is slowly approaching completion, the following features are currently unimplemented:
-// Fine background x-scrolling
+// The following features are currently unimplemented:
 // Screen flipping
-//
-// However, work is being done on those fronts, so don't lose hope here!
 
 #include "k052109.h"
 using namespace beekonami::video;
@@ -88,13 +85,24 @@ namespace beekonami::video
 	gfx_rom_bank = 0;
     }
 
-    tileaddr K052109::render()
+    gfxaddr K052109::render(int layer_num)
     {
-	tileaddr tiledata;
-	tiledata[0] = render_fixed();
-	tiledata[1] = render_layer_a();
-	tiledata[2] = render_layer_b();
-	return tiledata;
+	if ((layer_num < 0) || (layer_num >= 3))
+	{
+	    throw out_of_range("Invalid layer number");
+	}
+
+	gfxaddr tilemap;
+
+	switch (layer_num)
+	{
+	    case 0: tilemap = render_fixed(); break;
+	    case 1: tilemap = render_layer_a(); break;
+	    case 2: tilemap = render_layer_b(); break;
+	    default: tilemap.fill(0); break;
+	}
+
+	return tilemap;
     }
 
     gfxaddr K052109::render_fixed()
@@ -106,42 +114,46 @@ namespace beekonami::video
 	{
 	    for (int row = 0; row < 32; row++)
 	    {
-		uint32_t offs = ((row * 64) + col);
-		uint16_t vram_data = ((vram[offs] << 8) | vram[0x2000 + offs]);
-		uint8_t vram_lsb = (vram_data & 0xFF);
-		uint8_t color_attrib = (vram_data >> 8);
-
-		bool is_flipy = (is_flip_y_enable && testbit(color_attrib, 1));
-
-		int rom_bank = testbit(color_attrib, 3) ? reg_1F00 : reg_1D80;
-
-		if (testbit(color_attrib, 2))
+		for (int pixel = 0; pixel < 64; pixel++)
 		{
-		    rom_bank >>= 4;
-		}
-		else
-		{
-		    rom_bank &= 0xF;
-		}
+		    int pixely = (pixel / 8);
+		    int pixelx = (pixel % 8);
+		    uint32_t offs = ((row * 64) + col);
+		    uint16_t vram_data = ((vram[offs] << 8) | vram[0x2000 + offs]);
+		    uint8_t vram_lsb = (vram_data & 0xFF);
+		    uint8_t color_attrib = (vram_data >> 8);
 
-		if (!testbit(reg_1C00, 5))
-		{
-		    color_attrib = ((color_attrib & 0xF3) | ((rom_bank & 0x3) << 2));
-		}
+		    bool is_flipy = (is_flip_y_enable && testbit(color_attrib, 1));
 
-		int cab_pins = ((rom_bank >> 2) & 0x3);
+		    int rom_bank = testbit(color_attrib, 3) ? reg_1F00 : reg_1D80;
 
-		for (int pixel = 0; pixel < 8; pixel++)
-		{
-		    int py = pixel;
+		    if (testbit(color_attrib, 2))
+		    {
+			rom_bank >>= 4;
+		    }
+		    else
+		    {
+			rom_bank &= 0xF;
+		    }
+
+		    if (!testbit(reg_1C00, 5))
+		    {
+			color_attrib = ((color_attrib & 0xF3) | ((rom_bank & 0x3) << 2));
+		    }
+
+		    int cab_pins = ((rom_bank >> 2) & 0x3);
+
+		    uint32_t tile_offs = ((row * 64) + col);
+		    int pixel_offs = ((tile_offs * 64) + pixel);
+		    int py = pixely;
+		    int px = pixelx;
 
 		    if (is_flipy)
 		    {
 			py = (7 - py);
 		    }
 
-		    int pixel_offs = ((offs * 8) + pixel);
-		    fixed_tilemap.at(pixel_offs) = ((cab_pins << 19) | (color_attrib << 11) | (vram_lsb << 3) | py);
+		    fixed_tilemap.at(pixel_offs) = ((px << 21) | (cab_pins << 19) | (color_attrib << 11) | (vram_lsb << 3) | py);
 		}
 	    }
 	}
@@ -158,86 +170,92 @@ namespace beekonami::video
 	{
 	    for (int row = 0; row < 32; row++)
 	    {
-		uint32_t offs = ((row * 64) + col);
-		uint16_t vram_data = ((vram[0x800 + offs] << 8) | vram[0x2800 + offs]);
-		uint8_t vram_lsb = (vram_data & 0xFF);
-		uint8_t color_attrib = (vram_data >> 8);
-
-		uint8_t scrolly_value = 0;
-
-		if (is_scy_enable[0])
+		for (int pixel = 0; pixel < 64; pixel++)
 		{
-		    scrolly_value = vram[0x1800 + col];
-		}
-		else
-		{
-		    scrolly_value = vram[0x180C];
-		}
+		    int pixely = (pixel / 8);
+		    int pixelx = (pixel % 8);
 
-		uint32_t scrollx_offs = 0;
+		    uint32_t scrollx_offs = 0;
 
-		if (is_scx_interval[0])
-		{
-		    scrollx_offs = (row * 8);
-		}
+		    uint8_t scrolly_value = 0;
 
-		uint32_t scrolly_start = (32 - (scrolly_value >> 3));
-		int scrolly_fine = (scrolly_value & 0x7);
+		    if (is_scy_enable[0])
+		    {
+			scrolly_value = vram[0x1800 + col];
+		    }
+		    else
+		    {
+			scrolly_value = vram[0x180C];
+		    }
 
-		bool is_flipy = (is_flip_y_enable && testbit(color_attrib, 1));
+		    if (is_scx_interval[0])
+		    {
+			scrollx_offs = (row * 8);
+		    }
 
-		int rom_bank = testbit(color_attrib, 3) ? reg_1F00 : reg_1D80;
-
-		if (testbit(color_attrib, 2))
-		{
-		    rom_bank >>= 4;
-		}
-		else
-		{
-		    rom_bank &= 0xF;
-		}
-
-		if (!testbit(reg_1C00, 5))
-		{
-		    color_attrib = ((color_attrib & 0xF3) | ((rom_bank & 0x3) << 2));
-		}
-
-		int cab_pins = ((rom_bank >> 2) & 0x3);
-
-		uint32_t scroll_row = ((row + scrolly_start) & 0x1F);
-
-		for (int pixel = 0; pixel < 8; pixel++)
-		{
-		    // Currently a guess (albeit one based off of furrtek's schematics)
 		    if (is_scx_enable[0])
 		    {
 			scrollx_offs += pixel;
 		    }
 
 		    uint32_t scrollx_addr = (0x1A00 + (scrollx_offs * 2));
+
 		    uint16_t scrollx_value = (vram[scrollx_addr] | (testbit(vram[scrollx_addr + 1], 0) << 8));
 
-		    uint32_t scrollx_start = (64 - (scrollx_value >> 3));
+		    int column = ((col * 8) + pixelx);
+		    column = ((column + scrollx_value) % 512);
 
-		    uint32_t scroll_col = ((col + scrollx_start) & 0x3F);
-		    uint32_t tile_offs = ((scroll_row * 64) + scroll_col);
-		    int pixel_ypos = ((pixel + scrolly_fine) & 0x7);
-		    int pixel_offs = ((tile_offs * 8) + pixel_ypos);
-		    int py = pixel;
+		    int line = ((row * 8) + pixely);
+		    line = ((line + scrolly_value) % 256);
+
+		    uint32_t scroll_row = (line >> 3);
+		    int scrolly_fine = (line & 0x7);
+
+		    uint32_t scroll_col = (column >> 3);
+		    int scrollx_fine = (column & 0x7);
+
+		    uint32_t offs = ((scroll_row * 64) + scroll_col);
+		    uint16_t vram_data = ((vram[0x800 + offs] << 8) | vram[0x2800 + offs]);
+		    uint8_t vram_lsb = (vram_data & 0xFF);
+		    uint8_t color_attrib = (vram_data >> 8);
+
+		    bool is_flipy = (is_flip_y_enable && testbit(color_attrib, 1));
+
+		    int rom_bank = testbit(color_attrib, 3) ? reg_1F00 : reg_1D80;
+
+		    if (testbit(color_attrib, 2))
+		    {
+			rom_bank >>= 4;
+		    }
+		    else
+		    {
+			rom_bank &= 0xF;
+		    }
+
+		    if (!testbit(reg_1C00, 5))
+		    {
+			color_attrib = ((color_attrib & 0xF3) | ((rom_bank & 0x3) << 2));
+		    }
+
+		    int cab_pins = ((rom_bank >> 2) & 0x3);
+
+		    uint32_t tile_offs = ((row * 64) + col);
+		    int pixel_offs = ((tile_offs * 64) + pixel);
+		    int py = scrolly_fine;
+		    int px = scrollx_fine;
 
 		    if (is_flipy)
 		    {
 			py = (7 - py);
 		    }
 
-		    layer_a_tilemap.at(pixel_offs) = ((cab_pins << 19) | (color_attrib << 11) | (vram_lsb << 3) | py);
+		    layer_a_tilemap.at(pixel_offs) = ((px << 21) | (cab_pins << 19) | (color_attrib << 11) | (vram_lsb << 3) | py);
 		}
 	    }
 	}
 
 	return layer_a_tilemap;
     }
-
 
     gfxaddr K052109::render_layer_b()
     {
@@ -248,79 +266,86 @@ namespace beekonami::video
 	{
 	    for (int row = 0; row < 32; row++)
 	    {
-		uint32_t offs = ((row * 64) + col);
-		uint16_t vram_data = ((vram[0x1000 + offs] << 8) | vram[0x3000 + offs]);
-		uint8_t vram_lsb = (vram_data & 0xFF);
-		uint8_t color_attrib = (vram_data >> 8);
-
-		uint8_t scrolly_value = 0;
-
-		if (is_scy_enable[1])
+		for (int pixel = 0; pixel < 64; pixel++)
 		{
-		    scrolly_value = vram[0x3800 + col];
-		}
-		else
-		{
-		    scrolly_value = vram[0x380C];
-		}
+		    int pixely = (pixel / 8);
+		    int pixelx = (pixel % 8);
 
-		uint32_t scrollx_offs = 0;
+		    uint32_t scrollx_offs = 0;
 
-		if (is_scx_interval[1])
-		{
-		    scrollx_offs = (row * 8);
-		}
+		    uint8_t scrolly_value = 0;
 
-		uint32_t scrolly_start = (32 - (scrolly_value >> 3));
-		int scrolly_fine = (scrolly_value & 0x7);
+		    if (is_scy_enable[1])
+		    {
+			scrolly_value = vram[0x3800 + col];
+		    }
+		    else
+		    {
+			scrolly_value = vram[0x380C];
+		    }
 
-		bool is_flipy = (is_flip_y_enable && testbit(color_attrib, 1));
+		    if (is_scx_interval[1])
+		    {
+			scrollx_offs = (row * 8);
+		    }
 
-		int rom_bank = testbit(color_attrib, 3) ? reg_1F00 : reg_1D80;
-
-		if (testbit(color_attrib, 2))
-		{
-		    rom_bank >>= 4;
-		}
-		else
-		{
-		    rom_bank &= 0xF;
-		}
-
-		if (!testbit(reg_1C00, 5))
-		{
-		    color_attrib = ((color_attrib & 0xF3) | ((rom_bank & 0x3) << 2));
-		}
-
-		int cab_pins = ((rom_bank >> 2) & 0x3);
-
-		uint32_t scroll_row = ((row + scrolly_start) & 0x1F);
-
-		for (int pixel = 0; pixel < 8; pixel++)
-		{
-		    // Currently a guess (albeit one based off of furrtek's schematics)
 		    if (is_scx_enable[1])
 		    {
 			scrollx_offs += pixel;
 		    }
 
 		    uint32_t scrollx_addr = (0x3A00 + (scrollx_offs * 2));
+
 		    uint16_t scrollx_value = (vram[scrollx_addr] | (testbit(vram[scrollx_addr + 1], 0) << 8));
 
-		    uint32_t scrollx_start = (64 - (scrollx_value >> 3));
+		    int column = ((col * 8) + pixelx);
+		    column = ((column + scrollx_value) % 512);
 
-		    uint32_t scroll_col = ((col + scrollx_start) & 0x3F);
-		    uint32_t tile_offs = ((scroll_row * 64) + scroll_col);
-		    int pixel_ypos = ((pixel + scrolly_fine) & 0x7);
-		    int pixel_offs = ((tile_offs * 8) + pixel_ypos);
-		    int py = pixel;
+		    int line = ((row * 8) + pixely);
+		    line = ((line + scrolly_value) % 256);
+
+		    uint32_t scroll_row = (line >> 3);
+		    int scrolly_fine = (line & 0x7);
+
+		    uint32_t scroll_col = (column >> 3);
+		    int scrollx_fine = (column & 0x7);
+
+		    uint32_t offs = ((scroll_row * 64) + scroll_col);
+		    uint16_t vram_data = ((vram[0x1000 + offs] << 8) | vram[0x3000 + offs]);
+		    uint8_t vram_lsb = (vram_data & 0xFF);
+		    uint8_t color_attrib = (vram_data >> 8);
+
+		    bool is_flipy = (is_flip_y_enable && testbit(color_attrib, 1));
+
+		    int rom_bank = testbit(color_attrib, 3) ? reg_1F00 : reg_1D80;
+
+		    if (testbit(color_attrib, 2))
+		    {
+			rom_bank >>= 4;
+		    }
+		    else
+		    {
+			rom_bank &= 0xF;
+		    }
+
+		    if (!testbit(reg_1C00, 5))
+		    {
+			color_attrib = ((color_attrib & 0xF3) | ((rom_bank & 0x3) << 2));
+		    }
+
+		    int cab_pins = ((rom_bank >> 2) & 0x3);
+
+		    uint32_t tile_offs = ((row * 64) + col);
+		    int pixel_offs = ((tile_offs * 64) + pixel);
+		    int py = scrolly_fine;
+		    int px = scrollx_fine;
 
 		    if (is_flipy)
 		    {
 			py = (7 - py);
 		    }
 
-		    layer_b_tilemap.at(pixel_offs) = ((cab_pins << 19) | (color_attrib << 11) | (vram_lsb << 3) | py);
+		    layer_b_tilemap.at(pixel_offs) = ((px << 21) | (cab_pins << 19) | (color_attrib << 11) | (vram_lsb << 3) | py);
 		}
 	    }
 	}

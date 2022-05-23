@@ -16,13 +16,13 @@
     along with BeeKonami.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-// BeeKonami-K051962 (WIP)
+// BeeKonami-K051962
 // Chip name: K051962
 // Chip description: Plane data processor
 //
 // BueniaDev's Notes:
-// This implementation is derived from both MAME's implementation and Furrtek's reverse-engineered schematics for this chip,
-// which can be found at the links below:
+// This implementation is inspired by MAME's implementation and derived from Furrtek's reverse-engineered schematics for this chip,
+// both of which can be found at the links below:
 //
 // MAME's implementation:
 // https://github.com/mamedev/mame/blob/master/src/mame/video/k052109.cpp
@@ -30,11 +30,8 @@
 // Furrtek's reverse-engineered schematics:
 // https://github.com/furrtek/VGChips/tree/master/Konami/051962
 //
-// Although this core is slowly approaching completion, the following features are currently unimplemented:
-// Fine background x-scrolling
+// The following features are currently unimplemented:
 // Screen flipping
-//
-// However, work is being done on those fronts, so don't lose hope here!
 
 #include "k051962.h"
 using namespace beekonami::video;
@@ -56,10 +53,8 @@ namespace beekonami::video
 	return (addr < gfx_rom.size()) ? gfx_rom.at(addr) : 0x00;
     }
 
-    int K051962::decode_tile(int tile_number, int tile_pixel)
+    int K051962::decode_tile(int tile_number, int ypos, int xpos)
     {
-	int ypos = (tile_pixel / 8);
-	int xpos = (tile_pixel % 8);
 	int tile_offs = ((tile_number * 32) + (ypos * 4));
 
 	int value = 0;
@@ -97,6 +92,11 @@ namespace beekonami::video
 
     tilebuffer K051962::render(int layer, gfxaddr tile_addr)
     {
+	if ((layer < 0) || (layer >= 3))
+	{
+	    throw out_of_range("Invalid layer number");
+	}
+
 	tilebuffer tilemap;
 	tilemap.fill(0);
 
@@ -107,46 +107,47 @@ namespace beekonami::video
 	    uint8_t tile_code = ((tilemap_addr >> 3) & 0xFF);
 	    uint8_t color_attrib = ((tilemap_addr >> 11) & 0xFF);
 	    int cab_pins = ((tilemap_addr >> 19) & 0x3);
+	    int pixelx = ((tilemap_addr >> 21) & 0x7);
+	    int pixely = (tilemap_addr & 0x7);
 
-	    uint32_t tile_addr = tile_code;
+	    bool is_flipx = (is_flipx_enable && testbit(color_attrib, 0));
+
+	    uint32_t tile_addr = 0;
 
 	    if (tile_callback)
 	    {
 		tile_addr = tile_callback(tile_code, color_attrib, cab_pins);
 	    }
 
-	    uint32_t tile_number = (tile_addr & 0x3FFFF);
-
-	    bool is_flipx = (is_flipx_enable && testbit(color_attrib, 0));
-
-	    uint32_t tile_index = (index / 8);
+	    uint32_t tile_index = (index / 64);
+	    int pixel_index = (index % 64);
 
 	    int ycoord = (tile_index / 64);
 	    int xcoord = (tile_index % 64);
 
-	    int py = (tilemap_addr & 0x7);
+	    int py = (pixel_index / 8);
+	    int px = (pixel_index % 8);
 
-	    for (int pixelx = 0; pixelx < 8; pixelx++)
+	    int pixel_color = decode_tile(tile_addr, pixely, pixelx);
+
+	    if (is_flipx)
 	    {
-		int px = pixelx;
-
-		if (is_flipx)
-		{
-		    px = (7 - px);
-		}
-
-		int ypos = ((ycoord * 8) + py);
-		int xpos = ((xcoord * 8) + px);
-
-		int pixel = ((py * 8) + pixelx);
-
-		int pixel_color = decode_tile(tile_number, pixel);
-
-		uint32_t pixel_offs = (xpos + (ypos * 512));
-
-		int tilemap_addr = ((pixel_color & 0xF) | (color_attrib & 0xF0));
-		tilemap.at(pixel_offs) = tilemap_addr;
+		px = (7 - px);
 	    }
+
+	    int ypos = ((ycoord * 8) + py);
+	    int xpos = ((xcoord * 8) + px);
+
+	    uint32_t pixel_offs = (xpos + (ypos * 512));
+
+	    int pixel_addr = ((pixel_color & 0xF) | (color_attrib & 0xF0));
+
+	    if (layer != 0)
+	    {
+		pixel_addr |= ((color_attrib & 0xF) << 8);
+	    }
+
+	    tilemap.at(pixel_offs) = pixel_addr;
 	}
 
 	return tilemap;

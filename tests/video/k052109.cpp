@@ -8,6 +8,8 @@ using namespace std;
 
 #include "palette.inl"
 
+int frame_num = 1;
+
 template<typename T>
 bool testbit(T reg, int bit)
 {
@@ -111,6 +113,11 @@ array<uint8_t, 3> getColor(int pal_num)
 
 void set_pixel(int xpos, int ypos, array<uint8_t, 3> color)
 {
+    if ((xpos >= 512) || (ypos >= 256))
+    {
+	return;
+    }
+
     uint32_t pixel_offs = ((xpos + (ypos * 512)) * 3);
 
     for (int i = 0; i < 3; i++)
@@ -142,9 +149,8 @@ void save_png(int frame_num)
 void render_layer(K052109 &tile_chip, K051962 &tile_gfx_chip, int layer_num, int prior)
 {
     bool is_prior = (prior == 0) ? true : false;
-    auto gfx_tiles = tile_chip.render();
 
-    auto fixed_tilemap = gfx_tiles[layer_num];
+    auto fixed_tilemap = tile_chip.render(layer_num);
     auto tile_buffer = tile_gfx_chip.render(layer_num, fixed_tilemap);
 
     for (int xpos = 0; xpos < 512; xpos++)
@@ -154,9 +160,7 @@ void render_layer(K052109 &tile_chip, K051962 &tile_gfx_chip, int layer_num, int
 	    uint32_t pixel_offs = (xpos + (ypos * 512));
 	    int gfx_addr = tile_buffer.at(pixel_offs);
 	    int tile_num = (gfx_addr & 0xF);
-	    int color_base = (layer_num == 0) ? 0 : 8;
-	    int color_num = (color_base + ((gfx_addr >> 5) & 0x7));
-	    int color_offs = ((color_num * 16) + tile_num);
+	    int color_offs = gfx_addr;
 
 	    bool priority = ((gfx_addr & 0x10) != 0);
 
@@ -227,7 +231,6 @@ bool interpret_log(vector<uint8_t> data, K052109 &tile_chip, K051962 &tile_gfx_c
     tile_gfx_chip.init();
 
     bool quit = false;
-    int frame_num = 1;
 
     while (!quit)
     {
@@ -239,6 +242,7 @@ bool interpret_log(vector<uint8_t> data, K052109 &tile_chip, K051962 &tile_gfx_c
 	    {
 		uint16_t address = read_word(data, pc);
 		uint8_t value = read_byte(data, pc);
+
 		bool is_ben = tile_chip.write(address, value);
 
 		if (is_ben)
@@ -259,7 +263,6 @@ bool interpret_log(vector<uint8_t> data, K052109 &tile_chip, K051962 &tile_gfx_c
 	    break;
 	    case 0x03:
 	    {
-		// cout << "Rendering frame..." << endl;
 		render_frame(tile_chip, tile_gfx_chip, frame_num++);
 	    }
 	    break;

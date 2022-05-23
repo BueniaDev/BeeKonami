@@ -33,8 +33,7 @@ namespace beekonami
 {
     namespace video
     {
-	using gfxaddr = array<uint32_t, 0x4000>;
-
+	using gfxaddr = array<uint32_t, 0x20000>;
 	using tilebuffer = array<int, 0x20000>;
 
 	using tilefunc = function<uint32_t(uint8_t, uint8_t, int)>;
@@ -62,7 +61,7 @@ namespace beekonami
 
 		vector<uint8_t> gfx_rom;
 
-		int decode_tile(int tile_number, int tile_pixel);
+		int decode_tile(int tile_number, int ypos, int xpos);
 		uint8_t fetch_tile_rom(size_t addr);
 
 		tilefunc tile_callback;
