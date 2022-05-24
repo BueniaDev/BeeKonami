@@ -177,16 +177,7 @@ namespace beekonami::video
 
 		    uint32_t scrollx_offs = 0;
 
-		    uint8_t scrolly_value = 0;
-
-		    if (is_scy_enable[0])
-		    {
-			scrolly_value = vram[0x1800 + col];
-		    }
-		    else
-		    {
-			scrolly_value = vram[0x180C];
-		    }
+		    uint32_t scrolly_offs = 0;
 
 		    if (is_scx_interval[0])
 		    {
@@ -195,12 +186,23 @@ namespace beekonami::video
 
 		    if (is_scx_enable[0])
 		    {
-			scrollx_offs += pixel;
+			scrollx_offs += pixelx;
 		    }
 
 		    uint32_t scrollx_addr = (0x1A00 + (scrollx_offs * 2));
 
 		    uint16_t scrollx_value = (vram[scrollx_addr] | (testbit(vram[scrollx_addr + 1], 0) << 8));
+
+		    if (is_scy_enable[0])
+		    {
+			scrolly_offs = ((col + testbit(scrollx_value, 2)) & 0x3F);
+		    }
+		    else
+		    {
+			scrolly_offs = 0x0C;
+		    }
+
+		    uint8_t scrolly_value = vram[(0x1800 + scrolly_offs)];
 
 		    int column = ((col * 8) + pixelx);
 		    column = ((column + scrollx_value) % 512);
@@ -272,17 +274,7 @@ namespace beekonami::video
 		    int pixelx = (pixel % 8);
 
 		    uint32_t scrollx_offs = 0;
-
-		    uint8_t scrolly_value = 0;
-
-		    if (is_scy_enable[1])
-		    {
-			scrolly_value = vram[0x3800 + col];
-		    }
-		    else
-		    {
-			scrolly_value = vram[0x380C];
-		    }
+		    uint32_t scrolly_offs = 0;
 
 		    if (is_scx_interval[1])
 		    {
@@ -291,24 +283,35 @@ namespace beekonami::video
 
 		    if (is_scx_enable[1])
 		    {
-			scrollx_offs += pixel;
+			scrollx_offs += pixelx;
 		    }
 
 		    uint32_t scrollx_addr = (0x3A00 + (scrollx_offs * 2));
 
 		    uint16_t scrollx_value = (vram[scrollx_addr] | (testbit(vram[scrollx_addr + 1], 0) << 8));
 
+		    if (is_scy_enable[1])
+		    {
+			scrolly_offs = ((col + testbit(scrollx_value, 2)) & 0x3F);
+		    }
+		    else
+		    {
+			scrolly_offs = 0x0C;
+		    }
+
+		    uint8_t scrolly_value = vram[(0x3800 + scrolly_offs)];
+
 		    int column = ((col * 8) + pixelx);
 		    column = ((column + scrollx_value) % 512);
+
+		    uint32_t scroll_col = (column >> 3);
+		    int scrollx_fine = (column & 0x7);
 
 		    int line = ((row * 8) + pixely);
 		    line = ((line + scrolly_value) % 256);
 
 		    uint32_t scroll_row = (line >> 3);
 		    int scrolly_fine = (line & 0x7);
-
-		    uint32_t scroll_col = (column >> 3);
-		    int scrollx_fine = (column & 0x7);
 
 		    uint32_t offs = ((scroll_row * 64) + scroll_col);
 		    uint16_t vram_data = ((vram[0x1000 + offs] << 8) | vram[0x3000 + offs]);

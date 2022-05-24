@@ -280,6 +280,21 @@ bool interpret_log(vector<uint8_t> data, K052109 &tile_chip, K051962 &tile_gfx_c
 		tile_gfx_chip.set_gfx_rom(tile_rom);
 	    }
 	    break;
+	    case 0x06:
+	    {
+		auto vram_dump = read_vector(data, pc);
+
+		for (size_t i = 0; i < 0x4000; i++)
+		{
+		    bool is_ben = tile_chip.write(i, vram_dump.at(i));
+
+		    if (is_ben)
+		    {
+			tile_gfx_chip.write(vram_dump.at(i));
+		    }
+		}
+	    }
+	    break;
 	    default:
 	    {
 		cout << "Unrecognized command of " << hex << int(command) << endl;
