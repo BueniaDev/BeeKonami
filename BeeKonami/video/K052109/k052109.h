@@ -53,6 +53,11 @@ namespace beekonami
 
 		gfxaddr render(int layer_num);
 
+		array<uint8_t, 0x4000> get_vram()
+		{
+		    return vram;
+		}
+
 	    private:
 		template<typename T>
 		bool testbit(T reg, int bit)
