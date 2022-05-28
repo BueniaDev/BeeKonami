@@ -89,7 +89,7 @@ namespace beekonami::audio
 	}
     }
 
-    void K053260::write_reg(int offs, uint8_t data)
+    void K053260::writeReg(int offs, uint8_t data)
     {
 	offs &= 0x3F;
 
@@ -288,18 +288,6 @@ namespace beekonami::audio
 	}
 
 	copy(rom_data.begin(), (rom_data.begin() + data_length), (kadpcm_rom.begin() + data_start));
-    }
-
-    void K053260::writeIO(int port, uint8_t data)
-    {
-	if ((port & 1) == 0)
-	{
-	    chip_address = data;
-	}
-	else
-	{
-	    write_reg(chip_address, data);
-	}
     }
 
     void K053260::clockchip()

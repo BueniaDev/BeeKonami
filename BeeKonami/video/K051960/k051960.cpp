@@ -27,7 +27,7 @@
 // MAME's implementation:
 // https://github.com/mamedev/mame/blob/master/src/mame/video/k051960.cpp
 //
-// Furrtek's reverse-engineered schematics:
+// Furrtek's schematics:
 // https://github.com/furrtek/VGChips/tree/master/Konami/051960
 //
 // NOTICE: This implementation is a huge WIP, and lots of features are currently unimplemented.

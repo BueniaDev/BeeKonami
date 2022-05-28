@@ -18,6 +18,10 @@ if (BUILD_VIDEO)
 	option(BUILD_VIDEO_TESTS "Build the test suite for the video cores." OFF)
 endif()
 
+if (BUILD_AUDIO)
+	option(BUILD_AUDIO_TESTS "Build the test suite for the audio cores." OFF)
+endif()
+
 add_library(beekonami INTERFACE)
 
 if (BUILD_AUDIO)
@@ -34,6 +38,10 @@ add_library(libbeekonami ALIAS beekonami)
 
 if (BUILD_VIDEO_TESTS)
 	add_subdirectory(tests/video)
+endif()
+
+if (BUILD_AUDIO_TESTS)
+	add_subdirectory(tests/audio)
 endif()
 
 if (WIN32)

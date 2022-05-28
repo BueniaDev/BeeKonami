@@ -27,11 +27,12 @@
 // MAME's implementation:
 // https://github.com/mamedev/mame/blob/master/src/mame/video/k052109.cpp
 //
-// Furrtek's reverse-engineered schematics:
+// Furrtek's schematics:
 // https://github.com/furrtek/VGChips/tree/master/Konami/052109
 //
 // The following features are currently unimplemented:
 // Screen flipping
+// IRQ-related functionality
 
 #include "k052109.h"
 using namespace beekonami::video;
@@ -82,6 +83,10 @@ namespace beekonami::video
 	reg_1D80 = 0;
 	reg_1F00 = 0;
 	is_scy_enable.fill(false);
+	is_scx_enable.fill(false);
+	is_scx_interval.fill(false);
+	is_flip_screen = false;
+	is_flip_y_enable = false;
 	gfx_rom_bank = 0;
     }
 
@@ -372,7 +377,8 @@ namespace beekonami::video
 	else
 	{
 	    // GFX ROM address calculation
-	    // (based on Furrtek's schematics for this chip)
+	    // (based on MAME's implementation, improved upon 
+	    // using Furrtek's schematics)
 	    uint8_t tile_number = ((addr & 0x1FFF) >> 5);
 	    uint8_t color_attrib = gfx_rom_bank;
 	    int cab_pins = 0;
@@ -411,22 +417,20 @@ namespace beekonami::video
 
 	bool is_reg1E80_write = false;
 
-	switch (addr)
+	switch (addr & 0x1FFF)
 	{
 	    case 0x1C00:
 	    {
-		cout << "Writing value of " << hex << int(data) << " to K052109 register of 1c00" << endl;
  		reg_1C00 = data;
 	    }
 	    break;
 	    case 0x1D00:
 	    {
-		cout << "Writing value of " << hex << int(data) << " to K052109 register of 1D00" << endl;
+		cout << "Writing value of " << hex << int(data) << " to K052109 register of 1d00" << endl;
 	    }
 	    break;
 	    case 0x1C80:
 	    {
-		cout << "Writing value of " << hex << int(data) << " to K052109 register of 1c80" << endl;
 		is_scx_enable[0] = testbit(data, 0);
 		is_scx_interval[0] = testbit(data, 1);
 		is_scy_enable[0] = testbit(data, 2);
