@@ -38,6 +38,12 @@ namespace beekonami
 
 	using tilefunc = function<uint32_t(int, uint8_t, uint8_t, int)>;
 
+	inline uint32_t create_tileaddr_k051962(uint32_t tile_num, uint8_t color_attrib)
+	{
+	    tile_num &= 0x3FFFF;
+	    return ((uint32_t(color_attrib) << 18) | tile_num);
+	}
+
 	class K051962
 	{
 	    public:
