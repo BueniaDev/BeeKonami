@@ -36,7 +36,7 @@ namespace beekonami
 	using gfxaddr = array<uint32_t, 0x20000>;
 	using tilebuffer = array<int, 0x20000>;
 
-	using tilefunc = function<uint32_t(uint8_t, uint8_t, int)>;
+	using tilefunc = function<uint32_t(int, uint8_t, uint8_t, int)>;
 
 	class K051962
 	{

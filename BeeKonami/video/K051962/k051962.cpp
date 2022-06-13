@@ -110,14 +110,16 @@ namespace beekonami::video
 	    int pixelx = ((tilemap_addr >> 21) & 0x7);
 	    int pixely = (tilemap_addr & 0x7);
 
-	    bool is_flipx = (is_flipx_enable && testbit(color_attrib, 0));
-
 	    uint32_t tile_addr = 0;
 
 	    if (tile_callback)
 	    {
-		tile_addr = tile_callback(tile_code, color_attrib, cab_pins);
+		tile_addr = tile_callback(layer, tile_code, color_attrib, cab_pins);
 	    }
+
+	    bool is_flipx_attrib = (layer == 1) ? testbit(color_attrib, 2) : testbit(color_attrib, 0);
+
+	    bool is_flipx = (is_flipx_enable && is_flipx_attrib);
 
 	    uint32_t tile_index = (index / 64);
 	    int pixel_index = (index % 64);
