@@ -29,6 +29,9 @@
 //
 // Furrtek's reverse-engineered schematics:
 // https://github.com/furrtek/VGChips/tree/master/Konami/051962
+//
+// The following features still need to be improved:
+// Screen flipping
 
 #include "k051962.h"
 using namespace beekonami::video;
@@ -120,11 +123,6 @@ namespace beekonami::video
 
 	    bool is_flipx = (is_flipx_enable && is_flipx_attrib);
 
-	    if (is_flip_screen)
-	    {
-		is_flipx = !is_flipx;
-	    }
-
 	    uint32_t tile_index = (index / 64);
 	    int pixel_index = (index % 64);
 
@@ -143,6 +141,12 @@ namespace beekonami::video
 
 	    int ypos = ((ycoord * 8) + py);
 	    int xpos = ((xcoord * 8) + px);
+
+	    if (is_flip_screen)
+	    {
+		xpos = (511 - xpos);
+		ypos = (255 - ypos);
+	    }
 
 	    uint32_t pixel_offs = (xpos + (ypos * 512));
 

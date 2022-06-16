@@ -30,6 +30,9 @@
 // Furrtek's schematics:
 // https://github.com/furrtek/VGChips/tree/master/Konami/052109
 //
+// The following features still need to be improved:
+// Screen flipping
+// 
 // The following features are currently unimplemented:
 // IRQ-related functionality
 
@@ -129,11 +132,6 @@ namespace beekonami::video
 
 		    bool is_flipy = (is_flip_y_enable && testbit(color_attrib, 1));
 
-		    if (is_flip_screen)
-		    {
-			is_flipy = !is_flipy;
-		    }
-
 		    int rom_bank = testbit(color_attrib, 3) ? reg_1F00 : reg_1D80;
 
 		    if (testbit(color_attrib, 2))
@@ -232,11 +230,6 @@ namespace beekonami::video
 
 		    bool is_flipy = (is_flip_y_enable && testbit(color_attrib, 1));
 
-		    if (is_flip_screen)
-		    {
-			is_flipy = !is_flipy;
-		    }
-
 		    int rom_bank = testbit(color_attrib, 3) ? reg_1F00 : reg_1D80;
 
 		    if (testbit(color_attrib, 2))
@@ -333,11 +326,6 @@ namespace beekonami::video
 		    uint8_t color_attrib = (vram_data >> 8);
 
 		    bool is_flipy = (is_flip_y_enable && testbit(color_attrib, 1));
-
-		    if (is_flip_screen)
-		    {
-			is_flipy = !is_flipy;
-		    }
 
 		    int rom_bank = testbit(color_attrib, 3) ? reg_1F00 : reg_1D80;
 
