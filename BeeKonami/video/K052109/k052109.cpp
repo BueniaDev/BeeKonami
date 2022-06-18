@@ -77,9 +77,15 @@ namespace beekonami::video
 	tile_read = cb;
     }
 
+    void K052109::set_irq_cb(irqfunc cb)
+    {
+	irq_handler = cb;
+    }
+
     void K052109::reset()
     {
 	is_rm_rd = false;
+	is_irq_enabled = false;
 	vram.fill(0);
 	reg_1C00 = 0;
 	reg_1D80 = 0;
@@ -90,6 +96,27 @@ namespace beekonami::video
 	is_flip_screen = false;
 	is_flip_y_enable = false;
 	gfx_rom_bank = 0;
+    }
+
+    bool K052109::irq_enabled()
+    {
+	return is_irq_enabled;
+    }
+
+    bool K052109::get_rmrd_line()
+    {
+	return is_rm_rd;
+    }
+
+    void K052109::vblank(bool line)
+    {
+	if (is_irq_enabled && line)
+	{
+	    if (irq_handler)
+	    {
+		irq_handler(true);
+	    }
+	}
     }
 
     gfxaddr K052109::render(int layer_num)
@@ -426,11 +453,6 @@ namespace beekonami::video
  		reg_1C00 = data;
 	    }
 	    break;
-	    case 0x1D00:
-	    {
-		cout << "Writing value of " << hex << int(data) << " to K052109 register of 1d00" << endl;
-	    }
-	    break;
 	    case 0x1C80:
 	    {
 		is_scx_enable[0] = testbit(data, 0);
@@ -439,6 +461,20 @@ namespace beekonami::video
 		is_scx_enable[1] = testbit(data, 3);
 		is_scx_interval[1] = testbit(data, 4);
 		is_scy_enable[1] = testbit(data, 5);
+	    }
+	    break;
+	    case 0x1D00:
+	    {
+		cout << "Writing value of " << hex << int(data) << " to K052109 register of 1d00" << endl;
+		is_irq_enabled = testbit(data, 2);
+
+		if (!is_irq_enabled)
+		{
+		    if (irq_handler)
+		    {
+			irq_handler(false);
+		    }
+		}
 	    }
 	    break;
 	    case 0x1D80: reg_1D80 = data; break;

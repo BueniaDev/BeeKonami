@@ -36,6 +36,7 @@ namespace beekonami
     {
 	using gfxaddr = array<uint32_t, 0x20000>;
 	using tilereadfunc = function<uint32_t(uint8_t, uint8_t, int)>;
+	using irqfunc = function<void(bool)>;
 
 	class K052109
 	{
@@ -46,10 +47,17 @@ namespace beekonami
 		void init();
 		void set_gfx_rom(vector<uint8_t> rom);
 		void set_tile_read_cb(tilereadfunc cb);
+		void set_irq_cb(irqfunc cb);
+
+		void vblank(bool line);
+
+		bool irq_enabled();
 
 		uint8_t read(uint16_t addr);
 		bool write(uint16_t addr, uint8_t data);
 		void set_rmrd_line(bool line);
+
+		bool get_rmrd_line();
 
 		gfxaddr render(int layer_num);
 
@@ -75,6 +83,8 @@ namespace beekonami
 		uint8_t reg_1D80 = 0;
 		uint8_t reg_1F00 = 0;
 
+		bool is_irq_enabled = false;
+
 		array<bool, 2> is_scx_enable = {false, false};
 		array<bool, 2> is_scx_interval = {false, false};
 		array<bool, 2> is_scy_enable = {false, false};
@@ -90,6 +100,7 @@ namespace beekonami
 		vector<uint8_t> gfx_rom;
 
 		tilereadfunc tile_read;
+		irqfunc irq_handler;
 
 		uint8_t fetch_rom(uint32_t addr);
 	};

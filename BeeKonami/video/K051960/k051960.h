@@ -44,6 +44,11 @@ namespace beekonami
 		uint8_t read(uint16_t addr);
 		void write(uint16_t addr, uint8_t data);
 
+		array<uint8_t, 0x400> get_objram()
+		{
+		    return obj_ram;
+		}
+
 	    private:
 		template<typename T>
 		bool testbit(T reg, int bit)
