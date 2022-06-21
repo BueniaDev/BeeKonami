@@ -16,7 +16,7 @@
     along with BeeKonami.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-// BeeKonami-K053251 (WIP)
+// BeeKonami-K053251
 // Chip name: K053251
 // Chip description: Video priority encoder
 //
@@ -30,9 +30,9 @@
 // Furrtek's schematics:
 // https://github.com/furrtek/VGChips/tree/master/Konami/053251
 //
-// NOTICE: This implementation is a huge WIP, and lots of features are currently unimplemented.
-// In addition, please take note that the core API is in heavy flux at this precise moment.
-// However, work is being done on all of those fronts, so don't lose hope here!
+// The following features are currently unimplemented:
+// BRIT/NCOL output
+// Shadow selection
 
 #include "k053251.h"
 using namespace beekonami::video;
@@ -52,9 +52,11 @@ namespace beekonami::video
     void K053251::init()
     {
 	layer_priorities.fill(0x3F);
+	layer_inputs.fill(0);
 	priority_inputs.fill(0x3F);
 	is_priority_enabled.fill(false);
 	palette_index.fill(0);
+	calc_priority();
     }
 
     void K053251::write(int reg, uint8_t data)
@@ -71,6 +73,7 @@ namespace beekonami::video
 	    case 0x4:
 	    {
 		layer_priorities[reg] = data;
+		calc_priority();
 	    }
 	    break;
 	    case 0x9:
@@ -86,11 +89,22 @@ namespace beekonami::video
 		palette_index[4] = ((data >> 3) & 0x7);
 	    }
 	    break;
+	    case 0xB:
+	    {
+		is_transparent[0] = testbit(data, 0);
+		is_transparent[1] = testbit(data, 1);
+		is_transparent[2] = testbit(data, 2);
+		is_transparent[3] = testbit(data, 3);
+		is_transparent[4] = testbit(data, 4);
+		is_prior_swap = testbit(data, 5);
+	    }
+	    break;
 	    case 0xC:
 	    {
 		is_priority_enabled[0] = testbit(data, 0);
 		is_priority_enabled[1] = testbit(data, 1);
 		is_priority_enabled[2] = testbit(data, 2);
+		calc_priority();
 	    }
 	    break;
 	    default:
@@ -101,7 +115,7 @@ namespace beekonami::video
 	}
     }
 
-    void K053251::set_priorities(int layer, uint8_t data)
+    void K053251::set_priority(int layer, uint8_t data)
     {
 	if (!inRangeEx(layer, 0, 2))
 	{
@@ -111,5 +125,106 @@ namespace beekonami::video
 	}
 
 	priority_inputs.at(layer) = (data & 0x3F);
+	calc_priority();
+    }
+
+    int K053251::get_priority(K053251Priority index)
+    {
+	int priority = 0x3F;
+	switch (index)
+	{
+	    case CI0:
+	    case CI1:
+	    case CI2:
+	    {
+		if (is_priority_enabled.at(index))
+		{
+		    priority = layer_priorities.at(index);
+		}
+		else
+		{
+		    priority = priority_inputs.at(index);
+		}
+	    }
+	    break;
+	    case CI3:
+	    case CI4:
+	    {
+		priority = layer_priorities.at(index);
+	    }
+	    break;
+	}
+
+	return priority;
+    }
+
+    void K053251::set_input(int layer, uint16_t data)
+    {
+	if (!inRangeEx(layer, 0, 4))
+	{
+	    stringstream ss;
+	    ss << "Invalid layer of " << dec << layer;
+	    throw out_of_range(ss.str());
+	}
+
+	layer_inputs.at(layer) = data;
+    }
+
+    uint16_t K053251::get_output()
+    {
+	uint16_t color_input = 0;
+	int layer = 0;
+
+	for (int i = 4; i >= 0; i--)
+	{
+	    layer = layer_order.at(i);
+	    uint8_t layer_input = layer_inputs.at(layer);
+
+	    if (layer_input != 0)
+	    {
+		color_input = layer_input;
+		break;
+	    }
+	}
+
+	return color_input;
+    }
+
+    void K053251::calc_priority()
+    {
+	int prior0 = get_priority(K053251Priority::CI0);
+	int prior1 = get_priority(K053251Priority::CI1);
+	int prior2 = get_priority(K053251Priority::CI2);
+	int prior3 = get_priority(K053251Priority::CI3);
+	int prior4 = get_priority(K053251Priority::CI4);
+
+	layer_order = {0, 1, 2, 3, 4};
+	array<int, 5> priorities = {prior0, prior1, prior2, prior3, prior4};
+
+
+	// TODO: Verify that this logic matches the schematics
+	if ((prior1 < prior0) && is_prior_swap)
+	{
+	    swap(priorities.at(0), priorities.at(1));
+	    swap(layer_order.at(0), layer_order.at(1));
+	}
+
+	for (int i = 0; i < 5; i++)
+	{
+	    for (int j = (i + 1); j < 5; j++)
+	    {
+		auto &layer0 = layer_order.at(i);
+		auto &layer1 = layer_order.at(j);
+
+		int &priora = priorities.at(i);
+		int &priorb = priorities.at(j);
+
+		if (priora <= priorb)
+		{
+		    swap(priora, priorb);
+		    swap(layer0, layer1);
+		}
+	    }
+	}
     }
 }

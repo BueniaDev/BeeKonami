@@ -52,7 +52,10 @@ namespace beekonami
 		void init();
 		void write(int reg, uint8_t data);
 
-		void set_priorities(int layer, uint8_t data);
+		void set_priority(int layer, uint8_t data);
+		void set_input(int layer, uint16_t data);
+
+		uint16_t get_output();
 
 	    private:
 		template<typename T>
@@ -72,6 +75,16 @@ namespace beekonami
 		array<int, 5> layer_priorities;
 		array<int, 3> priority_inputs;
 		array<bool, 3> is_priority_enabled;
+		array<int, 5> layer_inputs;
+
+		array<bool, 5> is_transparent;
+		bool is_prior_swap = false;
+
+		array<int, 5> layer_order;
+
+		int get_priority(K053251Priority index);
+
+		void calc_priority();
 	};
     };
 
