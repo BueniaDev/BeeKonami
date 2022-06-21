@@ -190,7 +190,7 @@ namespace beekonami::video
 	    case CI3:
 	    case CI4:
 	    {
-		pal_index = (32 * palette_index.at(layer));
+		pal_index = (16 * palette_index.at(layer));
 	    }
 	    break;
 	    default: break;
