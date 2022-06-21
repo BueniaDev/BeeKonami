@@ -170,24 +170,56 @@ namespace beekonami::video
 	layer_inputs.at(layer) = data;
     }
 
-    uint16_t K053251::get_output()
+    uint16_t K053251::get_output(K053251Priority layer)
     {
-	uint16_t color_input = 0;
-	int layer = 0;
+	return layer_inputs.at(layer);
+    }
+
+    int K053251::get_palette_index(K053251Priority layer)
+    {
+	int pal_index = 0;
+	switch (layer)
+	{
+	    case CI0:
+	    case CI1:
+	    case CI2:
+	    {
+		pal_index = (32 * palette_index.at(layer));
+	    }
+	    break;
+	    case CI3:
+	    case CI4:
+	    {
+		pal_index = (32 * palette_index.at(layer));
+	    }
+	    break;
+	    default: break;
+	}
+
+	return pal_index;
+    }
+
+    K053251Priority K053251::get_top_layer()
+    {
+	K053251Priority layer;
 
 	for (int i = 4; i >= 0; i--)
 	{
 	    layer = layer_order.at(i);
 	    uint8_t layer_input = layer_inputs.at(layer);
 
+	    if (!is_transparent.at(layer))
+	    {
+		layer_input &= 0xF;
+	    }
+
 	    if (layer_input != 0)
 	    {
-		color_input = layer_input;
 		break;
 	    }
 	}
 
-	return color_input;
+	return layer;
     }
 
     void K053251::calc_priority()
@@ -198,9 +230,8 @@ namespace beekonami::video
 	int prior3 = get_priority(K053251Priority::CI3);
 	int prior4 = get_priority(K053251Priority::CI4);
 
-	layer_order = {0, 1, 2, 3, 4};
+	layer_order = {CI0, CI1, CI2, CI3, CI4};
 	array<int, 5> priorities = {prior0, prior1, prior2, prior3, prior4};
-
 
 	// TODO: Verify that this logic matches the schematics
 	if ((prior1 < prior0) && is_prior_swap)

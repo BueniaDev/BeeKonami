@@ -55,7 +55,10 @@ namespace beekonami
 		void set_priority(int layer, uint8_t data);
 		void set_input(int layer, uint16_t data);
 
-		uint16_t get_output();
+		int get_palette_index(K053251Priority layer);
+		uint16_t get_output(K053251Priority layer);
+
+		K053251Priority get_top_layer();
 
 	    private:
 		template<typename T>
@@ -80,7 +83,7 @@ namespace beekonami
 		array<bool, 5> is_transparent;
 		bool is_prior_swap = false;
 
-		array<int, 5> layer_order;
+		array<K053251Priority, 5> layer_order;
 
 		int get_priority(K053251Priority index);
 
