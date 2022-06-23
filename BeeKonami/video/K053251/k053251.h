@@ -40,7 +40,8 @@ namespace beekonami
 	    CI1 = 1,
 	    CI2 = 2,
 	    CI3 = 3,
-	    CI4 = 4
+	    CI4 = 4,
+	    Shadow = 5,
 	};
 
 	class K053251
@@ -54,6 +55,9 @@ namespace beekonami
 
 		void set_priority(int layer, uint8_t data);
 		void set_input(int layer, uint16_t data);
+
+		void set_shadow(int data);
+		int get_shadow();
 
 		int get_palette_index(K053251Priority layer);
 		uint16_t get_output(K053251Priority layer);
@@ -74,20 +78,29 @@ namespace beekonami
 		    return ((val >= low) && (val <= high));
 		}
 
+		int get_shadow_priority();
+
 		array<int, 5> palette_index;
 		array<int, 5> layer_priorities;
 		array<int, 3> priority_inputs;
 		array<bool, 3> is_priority_enabled;
 		array<int, 5> layer_inputs;
+		array<int, 3> shadow_priorities;
 
 		array<bool, 5> is_transparent;
 		bool is_prior_swap = false;
 
+		int shadow_reg = 0;
+
 		array<K053251Priority, 5> layer_order;
+
+		K053251Priority top_layer;
 
 		int get_priority(K053251Priority index);
 
 		void calc_priority();
+
+		void calc_layer();
 	};
     };
 
