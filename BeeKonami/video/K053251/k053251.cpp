@@ -197,7 +197,6 @@ namespace beekonami::video
 	}
 
 	layer_inputs.at(layer) = data;
-	calc_priority();
     }
 
     uint16_t K053251::get_output(K053251Priority layer)
@@ -231,11 +230,6 @@ namespace beekonami::video
 
     K053251Priority K053251::get_top_layer()
     {
-	return top_layer;
-    }
-
-    void K053251::calc_layer()
-    {
 	K053251Priority layer;
 
 	for (int i = 4; i >= 0; i--)
@@ -254,7 +248,7 @@ namespace beekonami::video
 	    }
 	}
 
-	top_layer = layer;
+	return layer;
     }
 
     void K053251::set_shadow(int data)
@@ -264,7 +258,7 @@ namespace beekonami::video
 
     int K053251::get_shadow()
     {
-	int priorl = get_priority(top_layer);
+	int priorl = get_priority(get_top_layer());
 	int priors = get_shadow_priority();
 
 	if (priorl < priors)
@@ -310,7 +304,5 @@ namespace beekonami::video
 		}
 	    }
 	}
-
-	calc_layer();
     }
 }

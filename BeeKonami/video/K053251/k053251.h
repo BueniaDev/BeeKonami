@@ -93,13 +93,9 @@ namespace beekonami
 
 		array<K053251Priority, 5> layer_order;
 
-		K053251Priority top_layer;
-
 		int get_priority(K053251Priority index);
 
 		void calc_priority();
-
-		void calc_layer();
 	};
     };
 
