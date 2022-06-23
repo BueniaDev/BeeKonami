@@ -41,7 +41,6 @@ namespace beekonami
 	    CI2 = 2,
 	    CI3 = 3,
 	    CI4 = 4,
-	    Shadow = 5,
 	};
 
 	class K053251
