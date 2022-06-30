@@ -25,10 +25,9 @@
 // This implementation is derived from MAME's implementation, which can be found here:
 // https://github.com/mamedev/mame/blob/master/src/devices/sound/k053260.cpp
 // 
-// The following features are currently unimplemented:
-//
-// Register reads
-// Communication ports
+// This implementation is pretty much complete, AFAIK.
+// However, this implementation may or may not be rewritten in the future, pending the possible
+// reverse-engineering of this chip by Furrtek.
 
 #include "k053260.h"
 using namespace beekonami::audio;
@@ -57,7 +56,7 @@ namespace beekonami::audio
     {
 	channel.current_addr = 0;
 	channel.sample = 0;
-	channel.is_playing = true;
+	channel.is_playing = false;
     }
 
     void K053260::update_pan_volume(kdsc_voice &channel)
@@ -86,82 +85,6 @@ namespace beekonami::audio
 		update_pan_volume(channel);
 	    }
 	    break;
-	}
-    }
-
-    void K053260::writeReg(int offs, uint8_t data)
-    {
-	offs &= 0x3F;
-
-	if ((offs >= 0x08) && (offs <= 0x27))
-	{
-	    int voice_num = ((offs - 8) / 8);
-	    int reg = (offs & 0x7);
-	    write_voice_reg(voice_num, reg, data);
-	}
-	else
-	{
-	    switch (offs)
-	    {
-		case 0x02:
-		case 0x03:
-		{
-		    cout << "Writing to minion-to-master port " << dec << int(offs - 2) << endl;
-		}
-		break;
-		case 0x28:
-		{
-		    for (int i = 0; i < 4; i++)
-		    {
-			auto &channel = voices[i];
-			if (!channel.prev_keyon && testbit(data, i))
-			{
-			    key_on(channel);
-			}
-			else if (!testbit(data, i))
-			{
-			    key_off(channel);
-			}
-
-			channel.prev_keyon = testbit(data, i);
-		    }
-		}
-		break;
-		case 0x2A:
-		{
-		    for (int i = 0; i < 4; i++)
-		    {
-			auto &channel = voices[i];
-
-			channel.is_loop = testbit(data, i);
-			channel.is_kadpcm = testbit(data, (4 + i));
-		    }
-		}
-		break;
-		case 0x2C:
-		{
-		    voices[0].pan_reg = (data & 0x7);
-		    voices[1].pan_reg = ((data >> 3) & 0x7);
-		    update_pan_volume(voices[0]);
-		    update_pan_volume(voices[1]);
-		}
-		break;
-		case 0x2D:
-		{
-		    voices[2].pan_reg = (data & 0x7);
-		    voices[3].pan_reg = ((data >> 3) & 0x7);
-		    update_pan_volume(voices[2]);
-		    update_pan_volume(voices[3]);
-		}
-		break;
-		case 0x2F:
-		{
-		    cout << "Writing to K053260 mode register" << endl;
-		    is_output_enabled = testbit(data, 1);
-		}
-		break;
-		default: break;
-	    }
 	}
     }
 
@@ -268,6 +191,151 @@ namespace beekonami::audio
 	}
 
 	keyon_reg = 0;
+    }
+
+    void K053260::setDebugMode(bool is_enabled)
+    {
+	is_debug_mode = is_enabled;
+    }
+
+    uint8_t K053260::readMaster(int addr)
+    {
+	// Minion-to-master ports
+	if ((addr & 1) == 0)
+	{
+	    return minion_ports[0];
+	}
+	else
+	{
+	    return master_ports[1];
+	}
+    }
+
+    void K053260::writeMaster(int addr, uint8_t data)
+    {
+	if ((addr & 1) == 0)
+	{
+	    master_ports[0] = data;
+	}
+	else
+	{
+	    master_ports[1] = data;
+	}
+    }
+
+    uint8_t K053260::readReg(int offs)
+    {
+	uint8_t data = 0;
+	offs &= 0x3F;
+
+	switch (offs)
+	{
+	    // Master-to-minion ports
+	    case 0x00: data = master_ports[0]; break;
+	    case 0x01: data = master_ports[1]; break;
+	    case 0x29:
+	    {
+		for (int i = 0; i < 4; i++)
+		{
+		    data |= (voices.at(i).is_playing << i);
+		}
+	    }
+	    break;
+	    case 0x2E:
+	    {
+		if (is_read_rom)
+		{
+		    uint32_t offs = (voices[0].start_addr + voices[0].current_addr);
+
+		    if (!is_debug_mode)
+		    {
+			voices[0].current_addr = ((voices[0].current_addr + 1) & 0xFFFF);
+		    }
+
+		    data = read_rom(offs);
+		}
+		else
+		{
+		    data = 0;
+		}
+	    }
+	    break;
+	}
+
+	return data;
+    }
+
+    void K053260::writeReg(int offs, uint8_t data)
+    {
+	offs &= 0x3F;
+
+	if ((offs >= 0x08) && (offs <= 0x27))
+	{
+	    int voice_num = ((offs - 8) / 8);
+	    int reg = (offs & 0x7);
+	    write_voice_reg(voice_num, reg, data);
+	}
+	else
+	{
+	    switch (offs)
+	    {
+		// Minion-to-master ports
+		case 0x02: minion_ports[0] = data; break;
+		case 0x03: minion_ports[1] = data; break;
+		case 0x28:
+		{
+		    for (int i = 0; i < 4; i++)
+		    {
+			auto &channel = voices[i];
+			if (!channel.prev_keyon && testbit(data, i))
+			{
+			    key_on(channel);
+			}
+			else if (!testbit(data, i))
+			{
+			    key_off(channel);
+			}
+
+			channel.prev_keyon = testbit(data, i);
+		    }
+		}
+		break;
+		case 0x2A:
+		{
+		    for (int i = 0; i < 4; i++)
+		    {
+			auto &channel = voices[i];
+
+			channel.is_loop = testbit(data, i);
+			channel.is_kadpcm = testbit(data, (4 + i));
+		    }
+		}
+		break;
+		case 0x2C:
+		{
+		    voices[0].pan_reg = (data & 0x7);
+		    voices[1].pan_reg = ((data >> 3) & 0x7);
+		    update_pan_volume(voices[0]);
+		    update_pan_volume(voices[1]);
+		}
+		break;
+		case 0x2D:
+		{
+		    voices[2].pan_reg = (data & 0x7);
+		    voices[3].pan_reg = ((data >> 3) & 0x7);
+		    update_pan_volume(voices[2]);
+		    update_pan_volume(voices[3]);
+		}
+		break;
+		case 0x2F:
+		{
+		    is_read_rom = testbit(data, 0);
+		    is_output_enabled = testbit(data, 1);
+		}
+		break;
+		default: break;
+	    }
+	}
     }
 
     void K053260::writeROM(size_t rom_size, size_t data_start, size_t data_len, vector<uint8_t> rom_data)

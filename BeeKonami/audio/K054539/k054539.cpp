@@ -208,7 +208,7 @@ namespace beekonami::audio
 	for (int i = 0; i < 256; i++)
 	{
 	    double volume = (pow(10.0, (-36.0 * (double)i / (double)0x40) / 20.0) / 4.0);
-	    voltab[i] = int32_t(volume * 49150.f); // Volume gain of 1.50 (X-Men track 2 sounds too quiet otherwise)
+	    voltab[i] = int32_t(volume * 58980.f); // Volume gain of 1.80
 	}
 
 	// Calculate panpot table

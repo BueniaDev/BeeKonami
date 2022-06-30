@@ -41,7 +41,11 @@ namespace beekonami
 
 		uint32_t get_sample_rate(uint32_t clock_rate);
 		void init();
+		void setDebugMode(bool is_enabled);
 		void writeROM(size_t rom_size, size_t data_start, size_t data_len, vector<uint8_t> rom_data);
+		uint8_t readMaster(int addr);
+		void writeMaster(int addr, uint8_t data);
+		uint8_t readReg(int offs);
 		void writeReg(int offs, uint8_t data);
 		void clockchip();
 		vector<int32_t> get_samples();
@@ -59,6 +63,11 @@ namespace beekonami
 		}
 
 		void reset();
+
+		bool is_debug_mode = false;
+
+		array<uint8_t, 2> master_ports;
+		array<uint8_t, 2> minion_ports;
 
 		void write_voice_reg(int ch_num, int offs, uint8_t data);
 
@@ -93,6 +102,7 @@ namespace beekonami
 		int chip_address = 0;
 
 		uint8_t keyon_reg = 0;
+		bool is_read_rom = false;
 		bool is_output_enabled = false;
 
 		array<array<int, 8>, 2> pan_mul_table = 
