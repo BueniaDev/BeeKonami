@@ -60,6 +60,9 @@ namespace beekonami
 
 		K053251Priority get_top_layer();
 
+		void set_shadow(int data);
+		int get_shadow();
+
 	    private:
 		template<typename T>
 		bool testbit(T reg, int bit)
@@ -80,11 +83,16 @@ namespace beekonami
 		array<bool, 3> is_priority_enabled;
 		array<int, 5> layer_inputs;
 
+		int shadow_reg = 0;
+
+		array<int, 3> shadow_priorities;
+
 		array<bool, 5> is_transparent;
 		bool is_prior_swap = false;
 
 		array<K053251Priority, 5> layer_order;
 
+		int get_shadow_priority();
 		int get_priority(K053251Priority index);
 
 		void calc_priority();

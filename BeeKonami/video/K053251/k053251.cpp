@@ -76,6 +76,9 @@ namespace beekonami::video
 		calc_priority();
 	    }
 	    break;
+	    case 0x6: shadow_priorities[0] = data; break;
+	    case 0x7: shadow_priorities[1] = data; break;
+	    case 0x8: shadow_priorities[2] = data; break;
 	    case 0x9:
 	    {
 		palette_index[0] = (data & 0x3);
@@ -220,6 +223,40 @@ namespace beekonami::video
 	}
 
 	return layer;
+    }
+
+    void K053251::set_shadow(int data)
+    {
+	shadow_reg = (data & 0x3);
+    }
+
+    int K053251::get_shadow()
+    {
+	int priority = get_priority(get_top_layer());
+	int shadow_priority = get_shadow_priority();
+
+	if (priority < shadow_priority)
+	{
+	    return shadow_reg;
+	}
+
+	return 0;
+    }
+
+    int K053251::get_shadow_priority()
+    {
+	int data = 0x3F;
+
+	switch (shadow_reg)
+	{
+	    case 0: data = 0x3F; break;
+	    case 1: data = shadow_priorities[0]; break;
+	    case 2: data = shadow_priorities[1]; break;
+	    case 3: data = shadow_priorities[2]; break;
+	    default: data = 0x3F; break;
+	}
+
+	return data;
     }
 
     void K053251::calc_priority()
