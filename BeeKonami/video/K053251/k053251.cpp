@@ -235,7 +235,7 @@ namespace beekonami::video
 	int priority = get_priority(get_top_layer());
 	int shadow_priority = get_shadow_priority();
 
-	if (priority < shadow_priority)
+	if (priority >= shadow_priority)
 	{
 	    return shadow_reg;
 	}
