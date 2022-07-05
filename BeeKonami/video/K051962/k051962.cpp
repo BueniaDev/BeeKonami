@@ -55,7 +55,7 @@ namespace beekonami::video
 
     int K051962::decode_tile(int tile_number, int ypos, int xpos)
     {
-	int tile_offs = ((tile_number * 32) + (ypos * 4));
+	int tile_offs = ((tile_number << 5) + (ypos << 2));
 
 	int value = 0;
 
@@ -103,21 +103,10 @@ namespace beekonami::video
 	{
 	    uint32_t tilemap_addr = tile_addr[index];
 
-	    uint8_t tile_code = ((tilemap_addr >> 3) & 0xFF);
-	    uint8_t color_byte = ((tilemap_addr >> 11) & 0xFF);
-	    int cab_pins = ((tilemap_addr >> 19) & 0x3);
-	    int pixelx = ((tilemap_addr >> 21) & 0x7);
-	    int pixely = (tilemap_addr & 0x7);
-
-	    uint32_t tile_addr = 0;
-
-	    if (tile_callback)
-	    {
-		tile_addr = tile_callback(layer, tile_code, color_byte, cab_pins);
-	    }
-
-	    uint32_t tile_number = (tile_addr & 0x3FFFF);
-	    uint8_t color_attrib = ((tile_addr >> 18) & 0xFF);
+	    uint32_t tile_number = ((tilemap_addr >> 6) & 0x3FFFF);
+	    uint8_t color_attrib = ((tilemap_addr >> 24) & 0xFF);
+	    int pixely = ((tilemap_addr >> 3) & 0x7);
+	    int pixelx = (tilemap_addr & 0x7);
 
 	    bool is_flipx_attrib = (layer == 1) ? testbit(color_attrib, 2) : testbit(color_attrib, 0);
 
@@ -126,12 +115,6 @@ namespace beekonami::video
 	    uint32_t tile_index = (index / 64);
 	    int pixel_index = (index % 64);
 
-	    int ycoord = (tile_index / 64);
-	    int xcoord = (tile_index % 64);
-
-	    int py = (pixel_index / 8);
-	    int px = (pixel_index % 8);
-
 	    if (is_flipx)
 	    {
 		pixelx = (7 - pixelx);
@@ -139,8 +122,8 @@ namespace beekonami::video
 
 	    int pixel_color = decode_tile(tile_number, pixely, pixelx);
 
-	    int ypos = ((ycoord * 8) + py);
-	    int xpos = ((xcoord * 8) + px);
+	    int ypos = (index / 512);
+	    int xpos = (index % 512);
 
 	    if (is_flip_screen)
 	    {
