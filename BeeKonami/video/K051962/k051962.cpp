@@ -115,6 +115,12 @@ namespace beekonami::video
 	    uint32_t tile_index = (index / 64);
 	    int pixel_index = (index % 64);
 
+	    int ycoord = (tile_index / 64);
+	    int xcoord = (tile_index % 64);
+
+	    int py = (pixel_index / 8);
+	    int px = (pixel_index % 8);
+
 	    if (is_flipx)
 	    {
 		pixelx = (7 - pixelx);
@@ -122,8 +128,8 @@ namespace beekonami::video
 
 	    int pixel_color = decode_tile(tile_number, pixely, pixelx);
 
-	    int ypos = (index / 512);
-	    int xpos = (index % 512);
+	    int ypos = ((ycoord * 8) + py);
+	    int xpos = ((xcoord * 8) + px);
 
 	    if (is_flip_screen)
 	    {
