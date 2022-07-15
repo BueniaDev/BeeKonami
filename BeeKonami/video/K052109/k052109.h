@@ -59,8 +59,7 @@ namespace beekonami
 
 		bool get_rmrd_line();
 
-		void render(int layer_num);
-		gfxaddr& getFramebuffer();
+		gfxaddr render(int layer_num);
 
 		array<uint8_t, 0x4000> get_vram()
 		{
@@ -76,9 +75,9 @@ namespace beekonami
 
 		void reset();
 
-		void render_fixed();
-		void render_layer_a();
-		void render_layer_b();
+		gfxaddr render_fixed();
+		gfxaddr render_layer_a();
+		gfxaddr render_layer_b();
 
 		uint8_t reg_1C00 = 0;
 		uint8_t reg_1D80 = 0;
@@ -99,8 +98,6 @@ namespace beekonami
 		array<uint8_t, 0x4000> vram;
 
 		vector<uint8_t> gfx_rom;
-
-		gfxaddr framebuffer;
 
 		tilereadfunc tile_read;
 		irqfunc irq_handler;

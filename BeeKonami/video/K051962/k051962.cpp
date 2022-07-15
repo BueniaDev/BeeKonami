@@ -55,7 +55,7 @@ namespace beekonami::video
 
     int K051962::decode_tile(int tile_number, int ypos, int xpos)
     {
-	int tile_offs = ((tile_number << 5) + (ypos << 2));
+	int tile_offs = ((tile_number * 32) + (ypos * 4));
 
 	int value = 0;
 
@@ -103,10 +103,21 @@ namespace beekonami::video
 	{
 	    uint32_t tilemap_addr = tile_addr[index];
 
-	    uint32_t tile_number = ((tilemap_addr >> 6) & 0x3FFFF);
-	    uint8_t color_attrib = ((tilemap_addr >> 24) & 0xFF);
-	    int pixely = ((tilemap_addr >> 3) & 0x7);
-	    int pixelx = (tilemap_addr & 0x7);
+	    uint8_t tile_code = ((tilemap_addr >> 3) & 0xFF);
+	    uint8_t color_byte = ((tilemap_addr >> 11) & 0xFF);
+	    int cab_pins = ((tilemap_addr >> 19) & 0x3);
+	    int pixelx = ((tilemap_addr >> 21) & 0x7);
+	    int pixely = (tilemap_addr & 0x7);
+
+	    uint32_t tile_addr = 0;
+
+	    if (tile_callback)
+	    {
+		tile_addr = tile_callback(layer, tile_code, color_byte, cab_pins);
+	    }
+
+	    uint32_t tile_number = (tile_addr & 0x3FFFF);
+	    uint8_t color_attrib = ((tile_addr >> 18) & 0xFF);
 
 	    bool is_flipx_attrib = (layer == 1) ? testbit(color_attrib, 2) : testbit(color_attrib, 0);
 

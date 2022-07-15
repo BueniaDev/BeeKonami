@@ -119,28 +119,31 @@ namespace beekonami::video
 	}
     }
 
-    void K052109::render(int layer_num)
+    gfxaddr K052109::render(int layer_num)
     {
 	if ((layer_num < 0) || (layer_num >= 3))
 	{
 	    throw out_of_range("Invalid layer number");
 	}
 
+	gfxaddr tilemap;
+
 	switch (layer_num)
 	{
-	    case 0: render_fixed(); break;
-	    case 1: render_layer_a(); break;
-	    case 2: render_layer_b(); break;
+	    case 0: tilemap = render_fixed(); break;
+	    case 1: tilemap = render_layer_a(); break;
+	    case 2: tilemap = render_layer_b(); break;
+	    default: tilemap.fill(0); break;
 	}
+
+	return tilemap;
     }
 
-    gfxaddr& K052109::getFramebuffer()
+    gfxaddr K052109::render_fixed()
     {
-	return framebuffer;
-    }
+	gfxaddr fixed_tilemap;
+	fixed_tilemap.fill(0);
 
-    void K052109::render_fixed()
-    {
 	for (int col = 0; col < 64; col++)
 	{
 	    for (int row = 0; row < 32; row++)
@@ -184,14 +187,19 @@ namespace beekonami::video
 			py = (7 - py);
 		    }
 
-		    framebuffer.at(pixel_offs) = ((px << 21) | (cab_pins << 19) | (color_attrib << 11) | (vram_lsb << 3) | py);
+		    fixed_tilemap.at(pixel_offs) = ((px << 21) | (cab_pins << 19) | (color_attrib << 11) | (vram_lsb << 3) | py);
 		}
 	    }
 	}
+
+	return fixed_tilemap;
     }
 
-    void K052109::render_layer_a()
+    gfxaddr K052109::render_layer_a()
     {
+	gfxaddr layer_a_tilemap;
+	layer_a_tilemap.fill(0);
+
 	for (int col = 0; col < 64; col++)
 	{
 	    for (int row = 0; row < 32; row++)
@@ -277,14 +285,19 @@ namespace beekonami::video
 			py = (7 - py);
 		    }
 
-		    framebuffer.at(pixel_offs) = ((px << 21) | (cab_pins << 19) | (color_attrib << 11) | (vram_lsb << 3) | py);
+		    layer_a_tilemap.at(pixel_offs) = ((px << 21) | (cab_pins << 19) | (color_attrib << 11) | (vram_lsb << 3) | py);
 		}
 	    }
 	}
+
+	return layer_a_tilemap;
     }
 
-    void K052109::render_layer_b()
+    gfxaddr K052109::render_layer_b()
     {
+	gfxaddr layer_b_tilemap;
+	layer_b_tilemap.fill(0);
+
 	for (int col = 0; col < 64; col++)
 	{
 	    for (int row = 0; row < 32; row++)
@@ -369,10 +382,12 @@ namespace beekonami::video
 			py = (7 - py);
 		    }
 
-		    framebuffer.at(pixel_offs) = ((px << 21) | (cab_pins << 19) | (color_attrib << 11) | (vram_lsb << 3) | py);
+		    layer_b_tilemap.at(pixel_offs) = ((px << 21) | (cab_pins << 19) | (color_attrib << 11) | (vram_lsb << 3) | py);
 		}
 	    }
 	}
+
+	return layer_b_tilemap;
     }
 
     void K052109::set_rmrd_line(bool line)
