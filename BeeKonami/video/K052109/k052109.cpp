@@ -465,7 +465,7 @@ namespace beekonami::video
 	    break;
 	    case 0x1D00:
 	    {
-		cout << "Writing value of " << hex << int(data) << " to K052109 register of 1d00" << endl;
+		// cout << "Writing value of " << hex << int(data) << " to K052109 register of 1d00" << endl;
 		is_irq_enabled = testbit(data, 2);
 
 		if (!is_irq_enabled)
@@ -484,6 +484,7 @@ namespace beekonami::video
 		is_flip_y_enable = testbit(data, 2);
 		is_flip_screen = testbit(data, 0);
 
+		/*
 		if (is_flip_screen)
 		{
 		    cout << "Screen is flipped" << endl;
@@ -492,6 +493,7 @@ namespace beekonami::video
 		{
 		    cout << "Screen is normal" << endl;
 		}
+		*/
 
 		is_reg1E80_write = true;
 	    }
