@@ -50,7 +50,7 @@ namespace beekonami
 
 		void write(uint8_t data);
 
-		tilebuffer render(int layer, gfxaddr tile_addr);
+		tilebuffer render(int layer, gfxaddr &tile_addr);
 
 		uint32_t create_tileaddr(uint32_t tile_num, uint8_t color_attrib)
 		{

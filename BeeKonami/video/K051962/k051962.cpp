@@ -89,7 +89,7 @@ namespace beekonami::video
 	tile_callback = cb;
     }
 
-    tilebuffer K051962::render(int layer, gfxaddr tile_addr)
+    tilebuffer K051962::render(int layer, gfxaddr &tile_addr)
     {
 	if ((layer < 0) || (layer >= 3))
 	{
