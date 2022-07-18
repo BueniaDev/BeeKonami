@@ -48,6 +48,7 @@ namespace beekonami
 		vector<int32_t> get_samples();
 
 		void setVolume(int volume_a, int volume_b);
+		void setBank(int bank_a, int bank_b);
 
 		void writeROM(vector<uint8_t> rom_data)
 		{
@@ -84,10 +85,6 @@ namespace beekonami
 		// 3=8-bit
 		array<int, 4> prescaler_bits = {12, 8, 4, 8};
 
-		array<int, 2> ch_volume = {0, 0};
-
-		uint8_t fetchROM(uint32_t addr);
-
 		struct k007232_channel
 		{
 		    uint32_t channel_counter = 0;
@@ -97,10 +94,14 @@ namespace beekonami
 		    uint32_t current_addr = 0;
 		    bool is_loop = false;
 		    bool is_playing = false;
+		    int bank = 0;
+		    int volume = 0;
 		    int32_t output = 0;
 		};
 
 		array<k007232_channel, 2> channels;
+
+		uint8_t fetchROM(k007232_channel &channel, uint32_t addr);
 	};
     };
 };

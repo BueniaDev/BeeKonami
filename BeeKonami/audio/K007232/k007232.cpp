@@ -33,10 +33,6 @@
 // This implementation is just about complete, AFAIK.
 // In addition, the frequency prescaler, which is unimplemented in MAME's core,
 // is fully implemented here.
-// However, the following features are currently unimplemented:
-//
-// RAM-based sample reads (ROM-based sample reads are fully implemented)
-// RAM bank-switching
 
 #include "k007232.h"
 using namespace beekonami::audio;
@@ -53,9 +49,10 @@ namespace beekonami::audio
 
     }
 
-    uint8_t K007232::fetchROM(uint32_t addr)
+    uint8_t K007232::fetchROM(k007232_channel &channel, uint32_t addr)
     {
-	return (addr < pcm_rom.size()) ? pcm_rom.at(addr) : 0xC0;
+	uint32_t rom_addr = (channel.bank + (addr & 0x1FFFF));
+	return (rom_addr < pcm_rom.size()) ? pcm_rom.at(rom_addr) : 0xC0;
     }
 
     void K007232::setVolume(int volume_a, int volume_b)
@@ -66,8 +63,14 @@ namespace beekonami::audio
 	// Scale ratio from [0-15] to [0-512]
 	double vol_ratio = (512 / 15);
 
-	ch_volume[0] = int(double(volume_a) * vol_ratio);
-	ch_volume[1] = int(double(volume_b) * vol_ratio);
+	channels[0].volume = int(double(volume_a) * vol_ratio);
+	channels[1].volume = int(double(volume_b) * vol_ratio);
+    }
+
+    void K007232::setBank(int bank_a, int bank_b)
+    {
+	channels[0].bank = (bank_a << 17);
+	channels[1].bank = (bank_b << 17);
     }
 
     uint32_t K007232::get_sample_rate(uint32_t clock_rate)
@@ -92,10 +95,9 @@ namespace beekonami::audio
 	    channel.current_addr = 0;
 	    channel.is_loop = false;
 	    channel.output = 0;
+	    channel.volume = 512;
+	    channel.bank = 0;
 	}
-
-	// Initialize channel volume
-	ch_volume.fill(512);
     }
 
     void K007232::writeROM(size_t rom_size, size_t data_start, size_t data_len, vector<uint8_t> rom_data)
@@ -226,10 +228,8 @@ namespace beekonami::audio
 
     void K007232::clockchip()
     {
-	for (int ch = 0; ch < 2; ch++)
+	for (auto &channel : channels)
 	{
-	    auto &channel = channels[ch];
-
 	    int prescale_bit = prescaler_bits.at(channel.prescale_val);
 	    int prescale_mask = ((1 << prescale_bit) - 1);
 
@@ -244,7 +244,8 @@ namespace beekonami::audio
 		    continue;
 		}
 
-		uint8_t sample = fetchROM(channel.current_addr++);
+		channel.current_addr &= 0x1FFFF;
+		uint8_t sample = fetchROM(channel, channel.current_addr++);
 
 		if (testbit(sample, 7) || (channel.current_addr >= get_pcmlimit()))
 		{
@@ -259,7 +260,7 @@ namespace beekonami::audio
 		}
 
 		int32_t output_sample = ((sample & 0x7F) - 0x40);
-		channel.output = (output_sample * ch_volume[ch]);
+		channel.output = (output_sample * channel.volume);
 	    }
 	    
 	}
