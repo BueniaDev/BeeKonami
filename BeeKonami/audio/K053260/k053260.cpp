@@ -213,6 +213,7 @@ namespace beekonami::audio
 
     void K053260::writeMaster(int addr, uint8_t data)
     {
+	// Master-to-minion ports
 	if ((addr & 1) == 0)
 	{
 	    master_ports[0] = data;
