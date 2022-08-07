@@ -16,7 +16,7 @@
     along with BeeKonami.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-// BeeKonami-K054000 (WIP)
+// BeeKonami-K054000
 // Chip name: K054000
 // Chip description: Collision detection / protection device
 //
