@@ -9,6 +9,7 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 option(BUILD_AUDIO "Build the audio cores." ON)
 option(BUILD_VIDEO "Build the video cores." ON)
+option(BUILD_MACHINE "Build the machine cores." ON)
 
 if (NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE "Release")
@@ -20,6 +21,10 @@ endif()
 
 if (BUILD_AUDIO)
 	option(BUILD_AUDIO_TESTS "Build the test suite for the audio cores." OFF)
+endif()
+
+if (BUILD_MACHINE)
+	option(BUILD_MACHINE_TESTS "Build the test suite for the machine cores." OFF)
 endif()
 
 add_library(beekonami INTERFACE)
@@ -34,6 +39,11 @@ if (BUILD_VIDEO)
 	target_link_libraries(beekonami INTERFACE beekonami-video)
 endif()
 
+if (BUILD_MACHINE)
+	add_subdirectory(BeeKonami/machine)
+	target_link_libraries(beekonami INTERFACE beekonami-machine)
+endif()
+
 add_library(libbeekonami ALIAS beekonami)
 
 if (BUILD_VIDEO_TESTS)
@@ -42,6 +52,10 @@ endif()
 
 if (BUILD_AUDIO_TESTS)
 	add_subdirectory(tests/audio)
+endif()
+
+if (BUILD_MACHINE_TESTS)
+	add_subdirectory(tests/machine)
 endif()
 
 if (WIN32)
