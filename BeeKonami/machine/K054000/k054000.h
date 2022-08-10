@@ -27,6 +27,7 @@
 #include <cmath>
 #include <array>
 #include <vector>
+#include <functional>
 using namespace std;
 
 namespace beekonami
