@@ -207,7 +207,7 @@ namespace beekonami::audio
 	}
 	else
 	{
-	    return master_ports[1];
+	    return minion_ports[1];
 	}
     }
 
