@@ -35,7 +35,7 @@ namespace beekonami
     namespace video
     {
 	using gfxaddr = array<uint32_t, 0x20000>;
-	using tilereadfunc = function<uint32_t(uint8_t, uint8_t, int)>;
+	using tilereadfunc = function<uint32_t(int, uint8_t, uint8_t, int)>;
 	using irqfunc = function<void(bool)>;
 
 	class K052109
@@ -45,6 +45,7 @@ namespace beekonami
 		~K052109();
 
 		void init();
+		void shutdown();
 		void set_gfx_rom(vector<uint8_t> rom);
 		void set_tile_read_cb(tilereadfunc cb);
 		void set_irq_cb(irqfunc cb);
@@ -98,6 +99,8 @@ namespace beekonami
 		array<uint8_t, 0x4000> vram;
 
 		vector<uint8_t> gfx_rom;
+
+		vector<uint32_t> tilemap_table;
 
 		tilereadfunc tile_read;
 		irqfunc irq_handler;

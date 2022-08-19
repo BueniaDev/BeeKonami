@@ -70,7 +70,16 @@ namespace beekonami::video
 
     void K051962::init()
     {
-	return;
+	tilemap_table[0].resize(0x40000, 0);
+	tilemap_table[1].resize(0x40000, 0);
+	tilemap_table[2].resize(0x40000, 0);
+    }
+
+    void K051962::shutdown()
+    {
+	tilemap_table[0].clear();
+	tilemap_table[1].clear();
+	tilemap_table[2].clear();
     }
 
     void K051962::write(uint8_t data)
@@ -87,6 +96,21 @@ namespace beekonami::video
     void K051962::set_tile_callback(tilefunc cb)
     {
 	tile_callback = cb;
+
+	for (uint32_t index = 0; index < 0x40000; index++)
+	{
+	    uint8_t tile_code = (index & 0xFF);
+	    uint8_t color_byte = ((index >> 8) & 0xFF);
+	    int cab_pins = ((index >> 16) & 0x3);
+
+	    for (int layer = 0; layer < 3; layer++)
+	    {
+		if (tile_callback)
+		{
+		    tilemap_table[layer].at(index) = tile_callback(layer, tile_code, color_byte, cab_pins);
+		}
+	    }
+	}
     }
 
     tilebuffer K051962::render(int layer, gfxaddr &tile_addr)
@@ -103,18 +127,11 @@ namespace beekonami::video
 	{
 	    uint32_t tilemap_addr = tile_addr[index];
 
-	    uint8_t tile_code = ((tilemap_addr >> 3) & 0xFF);
-	    uint8_t color_byte = ((tilemap_addr >> 11) & 0xFF);
-	    int cab_pins = ((tilemap_addr >> 19) & 0x3);
+	    uint32_t tile_code = ((tilemap_addr >> 3) & 0x3FFFF);
 	    int pixelx = ((tilemap_addr >> 21) & 0x7);
 	    int pixely = (tilemap_addr & 0x7);
 
-	    uint32_t tile_addr = 0;
-
-	    if (tile_callback)
-	    {
-		tile_addr = tile_callback(layer, tile_code, color_byte, cab_pins);
-	    }
+	    uint32_t tile_addr = tilemap_table[layer].at(tile_code);
 
 	    uint32_t tile_number = (tile_addr & 0x3FFFF);
 	    uint8_t color_attrib = ((tile_addr >> 18) & 0xFF);

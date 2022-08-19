@@ -46,6 +46,7 @@ namespace beekonami
 		~K051962();
 
 		void init();
+		void shutdown();
 		void set_gfx_rom(vector<uint8_t> tile_rom);
 		void set_tile_callback(tilefunc cb);
 
@@ -75,6 +76,8 @@ namespace beekonami
 
 		bool is_flip_screen = false;
 		bool is_flipx_enable = false;
+
+		array<vector<uint32_t>, 3> tilemap_table;
 	};
     };
 };

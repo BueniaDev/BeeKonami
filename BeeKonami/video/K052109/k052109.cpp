@@ -67,6 +67,11 @@ namespace beekonami::video
 	reset();
     }
 
+    void K052109::shutdown()
+    {
+	tilemap_table.clear();
+    }
+
     void K052109::set_gfx_rom(vector<uint8_t> rom)
     {
 	gfx_rom = vector<uint8_t>(rom.begin(), rom.end());
@@ -75,6 +80,22 @@ namespace beekonami::video
     void K052109::set_tile_read_cb(tilereadfunc cb)
     {
 	tile_read = cb;
+
+	for (uint32_t index = 0; index < 0x40000; index++)
+	{
+	    uint8_t tile_code = (index & 0xFF);
+	    uint8_t color_attrib = ((index >> 8) & 0xFF);
+	    int cab_pins = ((index >> 16) & 0x3);
+
+	    if (tile_read)
+	    {
+		tilemap_table.at(index) = tile_read(0, tile_code, color_attrib, cab_pins);
+	    }
+	    else
+	    {
+		tilemap_table.at(index) = (tile_code | (color_attrib << 8));
+	    }
+	}
     }
 
     void K052109::set_irq_cb(irqfunc cb)
@@ -84,6 +105,7 @@ namespace beekonami::video
 
     void K052109::reset()
     {
+	tilemap_table.resize(0x40000, 0);
 	is_rm_rd = false;
 	is_irq_enabled = false;
 	vram.fill(0);
@@ -425,12 +447,8 @@ namespace beekonami::video
 
 	    cab_pins = ((rom_bank >> 2) & 0x3);
 
-	    uint32_t gfx_addr = (tile_number | (color_attrib << 8));
-
-	    if (tile_read)
-	    {
-		gfx_addr = tile_read(tile_number, color_attrib, cab_pins);
-	    }
+	    uint32_t tile_code = (tile_number | (color_attrib << 8) | (cab_pins << 16));
+	    uint32_t gfx_addr = tilemap_table.at(tile_code);
 
 	    uint32_t rom_addr = ((gfx_addr << 5) + (addr & 0x1F));
 	    data = fetch_rom(rom_addr);
