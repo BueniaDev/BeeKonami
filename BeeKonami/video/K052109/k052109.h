@@ -1,42 +1,36 @@
-/*
-    This file is part of the BeeKonami engine.
-    Copyright (C) 2022 BueniaDev.
-
-    BeeKonami is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
-
-    BeeKonami is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with BeeKonami.  If not, see <https://www.gnu.org/licenses/>.
-*/
-
 #ifndef K052109_H
 #define K052109_H
 
-#include <iostream>
-#include <fstream>
-#include <sstream>
-#include <algorithm>
-#include <cstdint>
-#include <cmath>
-#include <array>
-#include <vector>
-#include <functional>
-using namespace std;
+#include "utils.h"
+using namespace beekonami;
 
 namespace beekonami
 {
     namespace video
     {
-	using gfxaddr = array<uint32_t, 0x20000>;
-	using tilereadfunc = function<uint32_t(int, uint8_t, uint8_t, int)>;
-	using irqfunc = function<void(bool)>;
+	class K052109Interface
+	{
+	    public:
+		K052109Interface()
+		{
+
+		}
+
+		~K052109Interface()
+		{
+
+		}
+
+		virtual uint16_t readRender(uint16_t)
+		{
+		    return 0;
+		}
+
+		virtual void writeVRAM(int, uint16_t, uint16_t)
+		{
+		    return;
+		}
+	};
 
 	class K052109
 	{
@@ -44,27 +38,22 @@ namespace beekonami
 		K052109();
 		~K052109();
 
-		void init();
-		void shutdown();
-		void set_gfx_rom(vector<uint8_t> rom);
-		void set_tile_read_cb(tilereadfunc cb);
-		void set_irq_cb(irqfunc cb);
-
-		void vblank(bool line);
-
-		bool irq_enabled();
+		void reset();
 
 		uint8_t read(uint16_t addr);
-		bool write(uint16_t addr, uint8_t data);
-		void set_rmrd_line(bool line);
+		void write(uint16_t addr, uint8_t data);
+		void setRMRD(bool line);
 
-		bool get_rmrd_line();
-
-		gfxaddr render(int layer_num);
-
-		array<uint8_t, 0x4000> get_vram()
+		void setInterface(K052109Interface *cb)
 		{
-		    return vram;
+		    inter = cb;
+		}
+
+		void render();
+
+		k052109gfx &getTileAddr()
+		{
+		    return tile_addr;
 		}
 
 	    private:
@@ -74,41 +63,66 @@ namespace beekonami
 		    return ((reg >> bit) & 1) ? true : false;
 		}
 
-		void reset();
-
-		gfxaddr render_fixed();
-		gfxaddr render_layer_a();
-		gfxaddr render_layer_b();
-
-		uint8_t reg_1C00 = 0;
-		uint8_t reg_1D80 = 0;
-		uint8_t reg_1F00 = 0;
-
-		bool is_irq_enabled = false;
-
-		array<bool, 2> is_scx_enable = {false, false};
-		array<bool, 2> is_scx_interval = {false, false};
-		array<bool, 2> is_scy_enable = {false, false};
-
-		uint8_t gfx_rom_bank = 0;
-
-		bool is_flip_screen = false;
-		bool is_flip_y_enable = false;
 		bool is_rm_rd = false;
 
-		array<uint8_t, 0x4000> vram;
+		K052109Interface *inter = NULL;
 
-		vector<uint8_t> gfx_rom;
+		k052109gfx tile_addr;
 
-		vector<uint32_t> tilemap_table;
+		void renderFixed();
+		void renderLayerA();
+		void renderLayerB();
 
-		tilereadfunc tile_read;
-		irqfunc irq_handler;
 
-		uint8_t fetch_rom(uint32_t addr);
+		uint8_t reg_1C00 = 0;
+		uint8_t reg_1C80 = 0;
+		uint8_t reg_1D00 = 0;
+		uint8_t reg_1D80 = 0;
+		uint8_t reg_1E00 = 0;
+		uint8_t reg_1F00 = 0;
+
+		uint16_t getStartingAddr()
+		{
+		    uint16_t addr = 0;
+		    int bank = (reg_1C00 & 0x3);
+
+		    switch (bank)
+		    {
+			case 0: addr = 0x6000; break;
+			case 1: addr = 0x4000; break;
+			case 2: addr = 0x2000; break;
+			case 3: addr = 0x0000; break;
+		    }
+
+		    return addr;
+		}
+
+		uint16_t readRender(uint16_t addr)
+		{
+		    addr &= 0x1FFF;
+
+		    if (inter == NULL)
+		    {
+			return 0;
+		    }
+
+		    return inter->readRender(addr);
+		}
+
+		void writeVRAM(int bank, uint16_t addr, uint8_t data)
+		{
+		    uint16_t vram_data = ((data << 8) | data);
+		    addr &= 0x1FFF;
+		    if (inter != NULL)
+		    {
+			inter->writeVRAM(bank, addr, vram_data);
+		    }
+		}
 	};
     };
 };
 
 
-#endif // K051960_H
+
+
+#endif // K052109_H

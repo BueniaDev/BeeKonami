@@ -1,43 +1,41 @@
-/*
-    This file is part of the BeeKonami engine.
-    Copyright (C) 2022 BueniaDev.
-
-    BeeKonami is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
-
-    BeeKonami is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with BeeKonami.  If not, see <https://www.gnu.org/licenses/>.
-*/
-
 #ifndef K051962_H
 #define K051962_H
 
-#include <iostream>
-#include <fstream>
-#include <sstream>
-#include <algorithm>
-#include <cstdint>
-#include <cmath>
-#include <array>
-#include <vector>
-#include <functional>
-using namespace std;
+#include "utils.h"
+using namespace beekonami;
 
 namespace beekonami
 {
     namespace video
     {
-	using gfxaddr = array<uint32_t, 0x20000>;
-	using tilebuffer = array<int, 0x20000>;
+	class K051962Interface
+	{
+	    public:
+		K051962Interface()
+		{
 
-	using tilefunc = function<uint32_t(int, uint8_t, uint8_t, int)>;
+		}
+
+		~K051962Interface()
+		{
+
+		}
+
+		virtual uint32_t makeAddr(k052109addr&)
+		{
+		    return 0;
+		}
+
+		virtual uint8_t makeColor(uint8_t)
+		{
+		    return 0;
+		}
+
+		virtual uint8_t readTileROM(uint32_t)
+		{
+		    return 0;
+		}
+	};
 
 	class K051962
 	{
@@ -45,39 +43,58 @@ namespace beekonami
 		K051962();
 		~K051962();
 
-		void init();
-		void shutdown();
-		void set_gfx_rom(vector<uint8_t> tile_rom);
-		void set_tile_callback(tilefunc cb);
+		void reset();
 
 		void write(uint8_t data);
 
-		tilebuffer render(int layer, gfxaddr &tile_addr);
+		void setTileAddr(k052109gfx &addr);
+		void render();
 
-		uint32_t create_tileaddr(uint32_t tile_num, uint8_t color_attrib)
+		void setInterface(K051962Interface *cb)
 		{
-		    tile_num &= 0x3FFFF;
-		    return ((uint32_t(color_attrib) << 18) | tile_num);
+		    inter = cb;
+		}
+
+		k051962gfx &getGFX()
+		{
+		    return gfx_addr;
 		}
 
 	    private:
-		template<typename T>
-		bool testbit(T reg, int bit)
+		k051962gfx gfx_addr;
+		k052109gfx tile_addr;
+
+		K051962Interface *inter = NULL;
+
+		uint32_t makeAddr(k052109addr &addr)
 		{
-		    return ((reg >> bit) & 1) ? true : false;
+		    if (inter == NULL)
+		    {
+			return 0;
+		    }
+
+		    return inter->makeAddr(addr);
 		}
 
-		vector<uint8_t> gfx_rom;
+		uint8_t makeColor(uint8_t color)
+		{
+		    if (inter == NULL)
+		    {
+			return 0;
+		    }
 
-		int decode_tile(int tile_number, int ypos, int xpos);
-		uint8_t fetch_tile_rom(size_t addr);
+		    return inter->makeColor(color);
+		}
 
-		tilefunc tile_callback;
+		uint8_t readTileROM(uint32_t addr)
+		{
+		    if (inter == NULL)
+		    {
+			return 0;
+		    }
 
-		bool is_flip_screen = false;
-		bool is_flipx_enable = false;
-
-		array<vector<uint32_t>, 3> tilemap_table;
+		    return inter->readTileROM(addr);
+		}
 	};
     };
 };
