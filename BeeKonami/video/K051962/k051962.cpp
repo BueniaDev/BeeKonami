@@ -1,3 +1,39 @@
+/*
+    This file is part of the BeeKonami engine.
+    Copyright (C) 2023 BueniaDev.
+
+    BeeKonami is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    BeeKonami is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with BeeKonami.  If not, see <https://www.gnu.org/licenses/>.
+*/
+
+// BeeKonami-K051962 (WIP)
+// Chip name: K051962
+// Chip description: Plane data processor
+//
+// BueniaDev's Notes:
+// This implementation is derived from both MAME's implementation and Furrtek's reverse-engineered schematics for this chip,
+// which can be found at the links below:
+//
+// MAME's implementation:
+// https://github.com/mamedev/mame/blob/master/src/mame/konami/k052109.cpp
+//
+// Furrtek's schematics:
+// https://github.com/furrtek/VGChips/tree/master/Konami/051962
+//
+// NOTICE: This implementation is a huge WIP, and lots of features are currently unimplemented.
+// In addition, please take note that the core API is in heavy flux at this precise moment.
+// However, work is being done on all of those fronts, so don't lose hope here!
+
 #include "k051962.h"
 using namespace beekonami::video;
 

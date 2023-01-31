@@ -11,6 +11,6 @@ BeeKonami is free software: you can redistribute it and/or modify it under the t
 
 # Copyright
 
-(C) 2022 BueniaDev. This project is not affiliated in any way with Konami. Any logos, brandings or other markings featured herein are the registered trademarks of their respective owners.
+(C) 2023 BueniaDev. This project is not affiliated in any way with Konami. Any logos, brandings or other markings featured herein are the registered trademarks of their respective owners.
 
 For information regarding BeeKonami's stance on copyright infringement, as well as proof of BeeKonami's legality, see the LEGAL.md file in this repository.
