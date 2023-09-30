@@ -60,9 +60,9 @@ namespace beekonami
 	    Sub8,
 	    Sbc8,
 	    And8,
-	    Bit8,
-	    Eor8,
 	    Or8,
+	    Eor8,
+	    Bit8,
 	    Cmp8,
 	};
 
@@ -999,6 +999,12 @@ namespace beekonami
 
 			uint32_t overflow_res = calcOverflow(alu8_a, alu8_b, alu8_res);
 			setOverflow(testbit(overflow_res, 7));
+		    }
+		    break;
+		    case And8:
+		    {
+			alu8_res = (alu8_a & alu8_b);
+			setOverflow(false);
 		    }
 		    break;
 		    default:
