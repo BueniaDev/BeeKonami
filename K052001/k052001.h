@@ -1007,6 +1007,18 @@ namespace beekonami
 			setOverflow(false);
 		    }
 		    break;
+		    case Or8:
+		    {
+			alu8_res = (alu8_a | alu8_b);
+			setOverflow(false);
+		    }
+		    break;
+		    case Eor8:
+		    {
+			alu8_res = (alu8_a ^ alu8_b);
+			setOverflow(false);
+		    }
+		    break;
 		    default:
 		    {
 			cout << "Unrecognized ALU 8-bit opcode of " << hex << int(alu8_op) << endl;
