@@ -35,6 +35,8 @@ namespace beekonami
 	    LBraOffsetLow,
 	    Imm16Low,
 	    IndexedBase,
+	    ExtendedAddrLow,
+	    ExtendedDontCare,
 	    AluEA,
 	    DivZeroCheck,
 	    Divide,
@@ -58,9 +60,9 @@ namespace beekonami
 	    Sub8,
 	    Sbc8,
 	    And8,
-	    Bit8,
-	    Eor8,
 	    Or8,
+	    Eor8,
+	    Bit8,
 	    Cmp8,
 	};
 
@@ -87,6 +89,7 @@ namespace beekonami
 	enum K052001IndexMode
 	{
 	    ModeNone = 0,
+	    ModeExtended,
 	    ModeNoOffs,
 	};
 
@@ -395,7 +398,6 @@ namespace beekonami
 		fetchAddrMode(instr_hi, instr_lo);
 		fetchALU8(instr_hi, instr_lo);
 		fetchSpecialImm(instr_hi, instr_lo);
-		fetchRegA(instr_hi, instr_lo);
 		fetchStore8(instr);
 		fetchJump(instr);
 	    }
@@ -518,8 +520,17 @@ namespace beekonami
 		}
 	    }
 
+	    void fetchALU8(uint8_t instr)
+	    {
+		int instr_hi = (instr >> 4);
+		int instr_lo = (instr & 0xF);
+		fetchALU8(instr_hi, instr_lo);
+	    }
+
 	    void fetchALU8(int instr_hi, int instr_lo)
 	    {
+		fetchRegA(instr_hi, instr_lo);
+
 		is_alu8_wb = true;
 		switch (instr_hi)
 		{
@@ -940,6 +951,12 @@ namespace beekonami
 		uint8_t indexed = (instr & 0xF7);
 		switch (indexed)
 		{
+		    case 0x07:
+		    {
+			index_mode = ModeExtended;
+			index_reg = IdxRegNone;
+		    }
+		    break;
 		    case 0x26:
 		    case 0x36:
 		    case 0x46:
@@ -982,6 +999,24 @@ namespace beekonami
 
 			uint32_t overflow_res = calcOverflow(alu8_a, alu8_b, alu8_res);
 			setOverflow(testbit(overflow_res, 7));
+		    }
+		    break;
+		    case And8:
+		    {
+			alu8_res = (alu8_a & alu8_b);
+			setOverflow(false);
+		    }
+		    break;
+		    case Or8:
+		    {
+			alu8_res = (alu8_a | alu8_b);
+			setOverflow(false);
+		    }
+		    break;
+		    case Eor8:
+		    {
+			alu8_res = (alu8_a ^ alu8_b);
+			setOverflow(false);
 		    }
 		    break;
 		    default:

@@ -1,5 +1,5 @@
 read();
-setAS();
+clearAS();
 
 switch (current_state)
 {
@@ -263,6 +263,7 @@ switch (current_state)
 
 	switch (index_reg)
 	{
+	    case IdxRegNone: alu16_a = 0; break;
 	    case IdxRegX: alu16_a = regx; break;
 	    default:
 	    {
@@ -306,6 +307,14 @@ switch (current_state)
 		}
 	    }
 	    break;
+	    case ModeExtended:
+	    {
+		reg_pc_next = (reg_pc + 1);
+		ea_next = ((ea_next & 0xFF) | (instr3_next << 8));
+		clearAS();
+		setState(ExtendedAddrLow);
+	    }
+	    break;
 	    default:
 	    {
 		cout << "Unrecognized indexed mode of " << dec << int(index_mode) << endl;
@@ -315,14 +324,66 @@ switch (current_state)
 	}
     }
     break;
+    case ExtendedAddrLow:
+    {
+	setAddress(reg_pc);
+	reg_pc_next = (reg_pc + 1);
+	ea_next = ((ea_next & 0xFF00) | getData());
+	setAS();
+	setState(ExtendedDontCare);
+    }
+    break;
+    case ExtendedDontCare:
+    {
+	if (is_jump)
+	{
+	    cout << "Jump instruction extended" << endl;
+	    throw runtime_error("BeeKonami error");
+	}
+	else
+	{
+	    clearAS();
+	    setState(AluEA);
+	}
+    }
+    break;
     case AluEA:
     {
 	fetchALU16(instr1);
 
 	if (is_alu8_op)
 	{
-	    cout << "ALU 8-bit opcode" << endl;
-	    throw runtime_error("BeeKonami error");
+	    setAddress(ea);
+	    fetchALU8(instr1);
+	    alu8_b = getData();
+	    alu8_cc = reg_cc;
+
+	    if (is_rega)
+	    {
+		alu8_a = rega;
+	    }
+	    else
+	    {
+		alu8_a = regb;
+	    }
+
+	    runALU8();
+	    reg_cc_next = alu_cc_out;
+
+	    if (is_alu8_wb)
+	    {
+		if (is_rega)
+		{
+		    rega_next = alu8_res;
+		}
+		else
+		{
+		    regb_next = alu8_res;
+		}
+	    }
+
+	    clearAS();
+	    setState(FetchI1);
 	}
 	else if (is_store8)
 	{
@@ -404,6 +465,7 @@ switch (current_state)
     case Divide:
     {
 	setAddress(0xFFFF);
+	setAS();
 
 	// The below division routine was based on the algorithm from the link below:
 	// https://www.mattmillman.com/mcs-48-the-quest-for-16-bit-division-on-the-8-bit-cpu-which-cant-divide-anything/

@@ -62,6 +62,7 @@ namespace beekonami
 	    void tickRAM();
 	    void tickAddr();
 
+	    bool prev_clk = false;
 	    bool ram_clk = false;
 	    bool prev_ram_clk = false;
 
