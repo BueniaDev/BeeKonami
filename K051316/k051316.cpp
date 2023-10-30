@@ -28,8 +28,6 @@ namespace beekonami
 
     void K051316::tickInternal(bool clk)
     {
-	static bool prev_clk = false;
-
 	if (prev_clk && !clk)
 	{
 	    m12_delay = current_pins.pin_m12;
@@ -37,10 +35,10 @@ namespace beekonami
 
 	tickWrite();
 	tickClocks();
-	tickXCounter();
-	tickYCounter();
 	tickRAM();
 	tickAddr();
+	tickXCounter();
+	tickYCounter();
 
 	prev_ram_l_we = ram_l_we;
 	prev_ram_r_we = ram_r_we;
@@ -91,7 +89,6 @@ namespace beekonami
 
 	if (r31_q && !testbit(regE, 7))
 	{
-	    // TODO: Implement rendering
 	    int x_val = ((x_acc >> 15) & 0x1F);
 	    int y_val = ((y_acc >> 15) & 0x1F);
 	    ram_addr = ((y_val << 5) | x_val);
@@ -230,21 +227,6 @@ namespace beekonami
 
     void K051316::tickAddr()
     {
-	if (prev_ram_clk && !ram_clk)
-	{
-	    ram_reg = ((ram_l_dout << 8) | ram_r_dout);
-	}
-
-	if (!prev_r31 && r31_q)
-	{
-	    pre_reg = ram_reg;
-	}
-
-	if (prev_r31 && !r31_q)
-	{
-	    ram_data = ram_reg;
-	}
-
 	if (prev_m6 && !current_pins.pin_m6)
 	{
 	    int x_oblk = ((x_acc >> 20) & 0xF);
@@ -270,7 +252,22 @@ namespace beekonami
 	    x_reg = ((x_acc >> 11) & 0xF);
 	    y_reg = ((y_acc >> 11) & 0xF);
 
-	    render_addr = ((ram_reg << 8) | (yflip << 4) | xflip);
+	    render_addr = ((pre_reg << 8) | (yflip << 4) | xflip);
+	}
+
+	if (prev_ram_clk && !ram_clk)
+	{
+	    ram_reg = ((ram_l_dout << 8) | ram_r_dout);
+	}
+
+	if (!prev_r31 && r31_q)
+	{
+	    pre_reg = ram_reg;
+	}
+
+	if (prev_r31 && !r31_q)
+	{
+	    ram_data = ram_reg;
 	}
 
 
