@@ -25,6 +25,8 @@ namespace beekonami
 	uint8_t za_scx = 0; // ZA1H, ZA2H and ZA4H
 	uint8_t zb_scx = 0; // ZB1H, ZB2H and ZB4H
 	uint8_t fix_color = 0; // DFI0-DFI7
+	uint16_t layer_a_color = 0; // DSA0-DSA7 and DSAA-DSAD
+	uint16_t layer_b_color = 0; // DSB0-DSB7 and DSBA-DSBD
 	bool pin_nfic = true; // NFIC
 	bool pin_nvbk = true; // NVBK
 	bool pin_nhbk = true; // NHBK
@@ -106,6 +108,7 @@ namespace beekonami
 
 	    bool x116 = false;
 
+	    int lf_pal_delay_a = 0;
 	    uint32_t fix_delay_a = 0;
 	    int pixel_sel_fix = 0;
 	    bool x80 = false;

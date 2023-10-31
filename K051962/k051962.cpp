@@ -170,6 +170,7 @@ namespace beekonami
 	{
 	    if (!prev_x80 && x80)
 	    {
+		lf_pal_delay_a = ((current_pins.rom_color >> 4) & 0xF);
 		fix_delay_a = current_pins.rom_data;
 	    }
 	}
@@ -184,7 +185,7 @@ namespace beekonami
 
 	if (!t61)
 	{
-	    current_pins.fix_color = (fix_color & 0xF);
+	    current_pins.fix_color = ((fix_color & 0xF) | (lf_pal_delay_a << 4));
 	}
 
 	current_pins.pin_nfic = (fix_color != 0);

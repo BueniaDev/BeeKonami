@@ -67,20 +67,24 @@ namespace beekonami
 
 	if (!res_sync)
 	{
-	    k123 = false;
-	}
-	else if (!prev_clk && clk)
-	{
-	    k123 = !clk3;
-	}
-
-	if (!res_sync)
-	{
 	    cpu_access_n = false;
 	}
 	else if (prev_clk && !clk)
 	{
-	    cpu_access_n = clk3;
+	    cpu_access_n = !clk3;
+	}
+
+	if (!res_sync)
+	{
+	    k77_q = 0;
+	}
+	else if (!prev_clk && clk)
+	{
+	    bool bit3 = (current_pins.pin_nrd && k123);
+	    bool bit2 = !(current_pins.pin_nrd && clk3 && !k123);
+	    bool bit1 = !(current_pins.pin_nrd && !k123 && k130);
+	    bool bit0 = clk3;
+	    k77_q = ((bit3 << 3) | (bit2 << 2) | (bit1 << 1) | bit0);
 	}
 
 	if (!res_sync)
@@ -96,19 +100,6 @@ namespace beekonami
 	    current_pins.pin_pq = k148;
 	    k148 = k123;
 	    k123 = !clk3;
-	}
-
-	if (!res_sync)
-	{
-	    k77_q = 0;
-	}
-	else if (!prev_clk && clk)
-	{
-	    bool bit3 = (current_pins.pin_nrd && k123);
-	    bool bit2 = !(current_pins.pin_nrd && clk3 && !k123);
-	    bool bit1 = !(current_pins.pin_nrd && !k123 && k130);
-	    bool bit0 = clk3;
-	    k77_q = ((bit3 << 3) | (bit2 << 2) | (bit1 << 1) | bit0);
 	}
 
 	current_pins.pin_rden = testbit(k77_q, 3);
@@ -284,7 +275,7 @@ namespace beekonami
 	    current_pins.rom_addr = (render_rom_addr & 0x7FF);
 	}
 
-	if (prev_h1 && !h1)
+	if (read_tile_num)
 	{
 	    color_attrib_a = (current_pins.vram_data >> 8);
 	}
@@ -294,9 +285,9 @@ namespace beekonami
 	    color_attrib_b = (current_pins.vram_data >> 8);
 	}
 
-	bool f30 = (clk6 && testbit(reg_1C00, 6) && !h1);
+	bool f130 = (clk6 && testbit(reg_1C00, 5) && !testbit(hcounter, 0));
 
-	color_mux = (f30) ? color_attrib_b : color_attrib_a;
+	color_mux = (f130) ? color_attrib_b : color_attrib_a;
 
 	int color_addr = ((color_mux >> 2) & 0x3);
 
