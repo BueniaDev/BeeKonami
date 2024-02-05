@@ -28,6 +28,7 @@ namespace beekonami
     {
 	clk = clk24;
 	tickClocks();
+	tickScroll();
 	tickIO();
 	tickCounters();
 	tickOutput();
@@ -64,6 +65,8 @@ namespace beekonami
 
 	    clk_counter = ((clk_counter + 1) % 8);
 	}
+
+	current_pins.pin_m12 = clk12;
 
 	if (!res_sync)
 	{
@@ -117,16 +120,16 @@ namespace beekonami
 	}
 
 	j151 = (j140 && testbit(reg_1C00, 6));
-    }
 
-    void K052109::tickCounters()
-    {
 	prev_h1 = h1;
 	h1 = testbit(hcounter, 0);
 
 	prev_h2 = h2;
 	h2 = testbit(hcounter, 1);
+    }
 
+    void K052109::tickCounters()
+    {
 	read_tile_num = (prev_h1 && !h1);
 	read_row_fix = (!prev_h2 && h2);
 
@@ -153,6 +156,58 @@ namespace beekonami
 		}
 	    }
 	}
+    }
+
+    void K052109::tickScroll()
+    {
+	tickScrollA();
+	tickScrollB();
+    }
+
+    void K052109::tickScrollA()
+    {
+	int row = vcounter;
+	int pxh = hcounter;
+
+	uint16_t add_x_a = 0;
+	uint16_t add_y_a = 0;
+
+	int pxhf = ((pxh >> 3) & 0x3F);
+
+	int fine_a = (((pxh & 0x7) + (add_x_a & 0x7)) & 0x7);
+
+	int scy_val_a = (row + add_y_a);
+
+	int map_y_a = ((scy_val_a >> 3) & 0x1F);
+	int map_x_a = (((pxhf & 0x3F) + ((add_x_a >> 3) & 0x3F)) & 0x3F);
+
+	row_a = (scy_val_a & 0x7);
+	map_a = ((map_y_a << 6) | map_x_a);
+
+	current_pins.za_scx = fine_a;
+    }
+
+    void K052109::tickScrollB()
+    {
+	int row = vcounter;
+	int pxh = hcounter;
+
+	uint16_t add_x_b = 0;
+	uint16_t add_y_b = 0;
+
+	int pxhf = ((pxh >> 3) & 0x3F);
+
+	int fine_b = (((pxh & 0x7) + (add_x_b & 0x7)) & 0x7);
+
+	int scy_val_b = (row + add_y_b);
+
+	int map_y_b = ((scy_val_b >> 3) & 0x1F);
+	int map_x_b = (((pxhf & 0x3F) + ((add_x_b >> 3) & 0x3F)) & 0x3F);
+
+	row_b = (scy_val_b & 0x7);
+	map_b = ((map_y_b << 6) | map_x_b);
+
+	current_pins.zb_scx = fine_b;
     }
 
     void K052109::tickIO()
@@ -211,9 +266,20 @@ namespace beekonami
 	// TODO: Implement screen flipping
 	uint8_t flip_adder = pxhf;
 
+	if (testbit(hcounter, 5))
+	{
+	    e40 = testbit(reg_1C80, 0);
+	}
+	else
+	{
+	    e40 = testbit(reg_1C80, 3);
+	}
+
+	int row_lsb = (e40) ? (vcounter & 0x7) : 0;
+
 	if (aa38)
 	{
-	    scroll_ram_a = (0x0200 | (row_msb << 4) | testbit(hcounter, 3));
+	    scroll_ram_a = (0x0200 | (row_msb << 4) | (row_lsb << 1) | testbit(hcounter, 3));
 	}
 	else
 	{
@@ -230,8 +296,10 @@ namespace beekonami
 	{
 	    switch (render_addr)
 	    {
-		case 0: current_pins.vram_addr = (0x1800 + scroll_ram_a); break;
-		case 3: current_pins.vram_addr = ((row_msb << 6) + pxhf); break;
+		case 0: current_pins.vram_addr = (0x1800 | scroll_ram_a); break;
+		case 1: current_pins.vram_addr = (0x0800 | map_a); break;
+		case 2: current_pins.vram_addr = (0x1000 | map_b); break;
+		case 3: current_pins.vram_addr = ((row_msb << 6) | pxhf); break;
 		default: current_pins.vram_addr = 0; break;
 	    }
 	}
@@ -253,7 +321,8 @@ namespace beekonami
 	{
 	    case 0:
 	    case 1: vc_mux = row_fix; break;
-	    default: vc_mux = 0; break;
+	    case 2: vc_mux = row_a; break;
+	    case 3: vc_mux = row_b; break;
 	}
 
 	if (read_tile_num)
@@ -285,7 +354,7 @@ namespace beekonami
 	    color_attrib_b = (current_pins.vram_data >> 8);
 	}
 
-	bool f130 = (clk6 && testbit(reg_1C00, 5) && !testbit(hcounter, 0));
+	bool f130 = (clk6 && testbit(reg_1C00, 6) && !testbit(hcounter, 0));
 
 	color_mux = (f130) ? color_attrib_b : color_attrib_a;
 

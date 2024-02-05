@@ -69,7 +69,7 @@ namespace beekonami
 
 	    void setScrollControl(uint8_t data)
 	    {
-		return;
+		reg_1C80 = data;
 	    }
 
 	    void setROMBanks(uint8_t bank1, uint8_t bank2)
@@ -90,9 +90,13 @@ namespace beekonami
 	    void tickInternal(bool clk24);
 
 	    void tickClocks();
+	    void tickScroll();
 	    void tickCounters();
 	    void tickIO();
 	    void tickOutput();
+
+	    void tickScrollA();
+	    void tickScrollB();
 
 	    bool clk = false;
 	    bool prev_clk = false;
@@ -140,6 +144,7 @@ namespace beekonami
 	    bool prev_write_io = true;
 
 	    uint8_t reg_1C00 = 0;
+	    uint8_t reg_1C80 = 0;
 	    uint8_t reg_1D80 = 0;
 	    uint8_t reg_1F00 = 0;
 
@@ -156,17 +161,32 @@ namespace beekonami
 	    uint16_t render_rom_addr = 0;
 
 	    int row_fix = 0;
+	    int row_a = 0;
+	    int row_b = 0;
 
 	    int vc_mux = 0;
 
 	    uint8_t color_attrib_a = 0;
 	    uint8_t color_attrib_b = 0;
 
+	    int vcounter_row = 0;
+
+	    uint8_t scroll_x_a = 0;
+	    bool scroll_x_msb_a = false;
+
+	    bool prev_aa2q_a = false;
+	    bool prev_aa22_nq_a = false;
+
 	    uint8_t color_mux = 0;
 
 	    bool prev_hvot = false;
 
+	    uint16_t map_a = 0;
+	    uint16_t map_b = 0;
+
 	    bool prev_j140 = false;
+
+	    bool e40 = false;
     };
 };
 
