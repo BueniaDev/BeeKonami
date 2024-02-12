@@ -109,12 +109,41 @@ namespace beekonami
 	    bool x116 = false;
 
 	    int lf_pal_delay_a = 0;
+	    int la_pal_delay_a = 0;
+	    int la_pal_delay_b = 0;
+	    int la_pal_delay_c = 0;
+	    int lb_pal_delay_a = 0;
+	    int lb_pal_delay_b = 0;
+
 	    uint32_t fix_delay_a = 0;
+	    uint32_t la_delay_a = 0;
+	    uint32_t la_delay_b = 0;
+	    uint32_t la_delay_c = 0;
+	    uint32_t lb_delay_a = 0;
+	    uint32_t lb_delay_b = 0;
+
 	    int pixel_sel_fix = 0;
+	    int pixel_sel_la = 0;
+	    int pixel_sel_lb = 0;
+
 	    bool x80 = false;
 	    bool prev_x80 = true;
 
+	    bool x78 = false;
+	    bool prev_x78 = true;
+
+	    bool v154 = false;
+	    bool prev_v154 = true;
+
+	    bool t19 = false;
+	    bool prev_t19 = true;
+
+	    bool l77 = false;
+	    bool prev_l77 = true;
+
 	    int fix_color = 0;
+	    int la_color = 0;
+	    int lb_color = 0;
 
 	    bool prev_t61 = true;
     };
