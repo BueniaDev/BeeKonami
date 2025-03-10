@@ -80,7 +80,22 @@ namespace beekonami
 	    bool clk_fall = false;
 	    bool prev_clk = false;
 
+	    bool clk_m12 = false;
+	    bool clk_m6 = false;
+	    bool clk_m3 = false;
+
+	    bool clk_pe = false;
+	    bool clk_pe_delay = false;
+	    bool clk_pq = false;
+
+	    array<bool, 3> clk_pq_delay = {{false}};
+
+	    uint8_t clk_counter = 0;
+
 	    void tickInternal();
+	    void tickClocks();
+
+	    bool res_sync = false;
     };
 };
 
