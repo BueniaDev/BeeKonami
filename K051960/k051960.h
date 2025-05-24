@@ -63,7 +63,7 @@ namespace beekonami
 
 	private:
 	    template<typename T>
-	    bool testbit(T reg, int bit)
+	    bool testbit(T reg, size_t bit)
 	    {
 		return ((reg >> bit) & 0x1) ? true : false;
 	    }
