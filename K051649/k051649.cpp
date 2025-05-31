@@ -28,8 +28,7 @@
 // 
 // The following features are currently unimplemented:
 //
-// FREF output pin
-// Channels 4 and 5 (including channel RAM reads)
+// Remainder of Channels 4 and 5
 //
 // However, work is being done on ALL of those fronts, so don't lose hope here!
 
@@ -124,9 +123,30 @@ namespace beekonami
 
     void K051649::tickSCC()
     {
+	tickSCC_Channels45Timing();
 	tickSCC_IO();
-	tickSCC_Out();
+	tickSCC_FREF();
 	tickSCC_Channels();
+    }
+
+    void K051649::tickSCC_FREF()
+    {
+	bool fref_val = false;
+	uint8_t fref_sel = ((scc_test_reg >> 2) & 0x7);
+
+	switch (fref_sel)
+	{
+	    case 0: fref_val = scc_ch1_fcounter_ld; break;
+	    case 1: fref_val = scc_ch2_fcounter_ld; break;
+	    case 2: fref_val = scc_ch3_fcounter_ld; break;
+	    case 3: fref_val = scc_ch4_fcounter_ld; break;
+	    case 4: fref_val = scc_ch5_fcounter_ld; break;
+	    case 5: fref_val = testbit(scc_ch45_addrsel, 0); break;
+	    case 6: fref_val = testbit(scc_ch45_addrsel, 1); break;
+	    case 7: fref_val = false; break;
+	}
+
+	current_pins.pin_fref = fref_val;
     }
 
     void K051649::tickSCC_IO()
@@ -135,11 +155,22 @@ namespace beekonami
 	scc_ch2_addr = (is_cs && is_scc_sel && ((scc_addr >= 0x20) && (scc_addr < 0x40))) ? (scc_addr & 0x1F) : scc_ch2_addr_cntr;
 	scc_ch3_addr = (is_cs && is_scc_sel && ((scc_addr >= 0x40) && (scc_addr < 0x60))) ? (scc_addr & 0x1F) : scc_ch3_addr_cntr;
 
+	switch (scc_ch45_addrsel)
+	{
+	    case 0: scc_ch45_addr = (scc_addr & 0x1F); break;
+	    case 1: scc_ch45_addr = scc_ch5_addr_cntr; break;
+	    case 2: scc_ch45_addr = scc_ch4_addr_cntr; break;
+	    case 3: scc_ch45_addr = 0x1F; break;
+	    default: scc_ch45_addr = 0; break; // Shouldn't happen
+	}
+
 	bool is_freq_range = ((scc_addr >= 0x80) && (scc_addr < 0xA0));
 	uint8_t scc_freq_addr = (scc_addr & 0xF);
 	scc_ch1_fchange = (is_write_edge && is_scc_sel && is_freq_range && ((scc_freq_addr == 0) || (scc_freq_addr == 1)));
 	scc_ch2_fchange = (is_write_edge && is_scc_sel && is_freq_range && ((scc_freq_addr == 2) || (scc_freq_addr == 3)));
 	scc_ch3_fchange = (is_write_edge && is_scc_sel && is_freq_range && ((scc_freq_addr == 4) || (scc_freq_addr == 5)));
+	scc_ch4_fchange = (is_write_edge && is_scc_sel && is_freq_range && ((scc_freq_addr == 6) || (scc_freq_addr == 7)));
+	scc_ch5_fchange = (is_write_edge && is_scc_sel && is_freq_range && ((scc_freq_addr == 8) || (scc_freq_addr == 9)));
 
 	if (is_write_edge && is_scc_sel)
 	{
@@ -155,9 +186,10 @@ namespace beekonami
 	    {
 		scc_ch3_ram[scc_ch3_addr] = current_pins.data;
 	    }
-	    else if (((scc_addr >= 0x60) && (scc_addr < 0x80)) && ((scc_test_reg >> 6) == 0))
+	    else if (((scc_addr >= 0x60) && (scc_addr < 0x80)) && !testbit(scc_test_reg, 6) && !testbit(scc_test_reg, 7))
 	    {
-		cout << "Writing value of " << hex << int(current_pins.data) << " to SCC ch4/ch5 RAM" << endl;
+		scc_ch45_ram[scc_ch45_addr] = current_pins.data;
+		// cout << "Writing value of " << hex << int(current_pins.data) << " to SCC ch4/ch5 RAM" << endl;
 	    }
 	    else if ((scc_addr >= 0x80) && (scc_addr < 0xA0))
 	    {
@@ -195,6 +227,26 @@ namespace beekonami
 			scc_ch3_freq = ((scc_ch3_freq & 0xFF) | ((current_pins.data & 0xF) << 8));
 		    }
 		    break;
+		    case 0x6:
+		    {
+			scc_ch4_freq = ((scc_ch4_freq & 0xF00) | current_pins.data);
+		    }
+		    break;
+		    case 0x7:
+		    {
+			scc_ch4_freq = ((scc_ch4_freq & 0xFF) | ((current_pins.data & 0xF) << 8));
+		    }
+		    break;
+		    case 0x8:
+		    {
+			scc_ch5_freq = ((scc_ch5_freq & 0xF00) | current_pins.data);
+		    }
+		    break;
+		    case 0x9:
+		    {
+			scc_ch5_freq = ((scc_ch5_freq & 0xFF) | ((current_pins.data & 0xF) << 8));
+		    }
+		    break;
 		    case 0xA:
 		    {
 			scc_ch1_vol = (current_pins.data & 0xF);
@@ -212,6 +264,8 @@ namespace beekonami
 		    break;
 		    case 0xF:
 		    {
+			// scc_ch5_mute = testbit(current_pins.data, 4);
+			// scc_ch4_mute = testbit(cuurent_pins.data, 3);
 			scc_ch3_mute = testbit(current_pins.data, 2);
 			scc_ch2_mute = testbit(current_pins.data, 1);
 			scc_ch1_mute = testbit(current_pins.data, 0);
@@ -234,6 +288,10 @@ namespace beekonami
 	scc_ch3_data = (is_write && is_scc_sel && ((scc_addr >= 0x40) && (scc_addr < 0x60)) && !testbit(scc_test_reg, 6)) ? current_pins.data : scc_ch3_ram[scc_ch3_addr];
 	scc_ch3_fcounter_ld = !(scc_ch3_fchange || scc_ch3_icounter_cnt);
 
+	scc_ch45_data = (is_write && is_scc_sel && ((scc_addr >= 0x60) && (scc_addr < 0x80)) && !testbit(scc_test_reg, 6) && !testbit(scc_test_reg, 7)) ? current_pins.data : scc_ch45_ram[scc_ch45_addr];
+	scc_ch4_fcounter_ld = !(scc_ch4_fchange || scc_ch4_icounter_cnt);
+	scc_ch5_fcounter_ld = !(scc_ch5_fchange || scc_ch5_icounter_cnt);
+
 	if (is_read_edge && is_scc_sel && (scc_addr < 0x80))
 	{
 	    if (scc_addr < 0x20)
@@ -250,171 +308,12 @@ namespace beekonami
 	    }
 	    else
 	    {
-		current_pins.data = 0x00;
+		current_pins.data = scc_ch45_data;
 	    }
 	}
     }
 
-    void K051649::tickSCC_Channels()
-    {
-	if (clk_rise)
-	{
-	    if (!scc_ch1_fcounter_ld)
-	    {
-		scc_ch1_cycles = 0;
-	    }
-	    else
-	    {
-		scc_ch1_cycles = ((scc_ch1_cycles + 1) & 0xF);
-	    }
-
-	    scc_ch1_fcounter_lo_borrow = (scc_ch1_fcounter_lo == 0);
-	    scc_ch1_fcounter_mid_borrow = (scc_ch1_fcounter_mid == 0);
-	    scc_ch1_fcounter_hi_borrow = (scc_ch1_fcounter_hi == 0);
-
-	    scc_ch1_fcounter_hi_cnt = (testbit(scc_test_reg, 0) ? true : (scc_ch1_fcounter_lo_borrow && scc_ch1_fcounter_mid_borrow));
-
-	    if (!scc_ch1_fcounter_ld)
-	    {
-		scc_ch1_fcounter_lo = (scc_ch1_freq & 0xF);
-		scc_ch1_fcounter_mid = ((scc_ch1_freq >> 4) & 0xF);
-		scc_ch1_fcounter_hi = ((scc_ch1_freq >> 8) & 0xF);
-	    }
-	    else
-	    {
-		if (scc_ch1_fcounter_hi_cnt)
-		{
-		    scc_ch1_fcounter_hi = ((scc_ch1_fcounter_hi - 1) & 0xF);
-		}
-
-		if (scc_ch1_fcounter_lo_borrow)
-		{
-		    scc_ch1_fcounter_mid = ((scc_ch1_fcounter_mid - 1) & 0xF);
-		}
-
-		scc_ch1_fcounter_lo = ((scc_ch1_fcounter_lo - 1) & 0xF);
-	    }
-
-	    scc_ch1_icounter_cnt = testbit(scc_test_reg, 1) ? (scc_ch1_fcounter_lo_borrow && scc_ch1_fcounter_mid_borrow) : (scc_ch1_fcounter_hi_cnt && scc_ch1_fcounter_hi_borrow);
-
-	    if (testbit(scc_test_reg, 5) && scc_ch1_fchange)
-	    {
-		scc_ch1_icounter = 0x1F;
-	    }
-	    else if (scc_ch1_icounter_cnt)
-	    {
-		scc_ch1_icounter = ((scc_ch1_icounter - 1) & 0x1F);
-	    }
-	}
-
-	scc_ch1_addr_cntr = (~scc_ch1_icounter & 0x1F);
-
-	if (clk_rise)
-	{
-	    if (!scc_ch2_fcounter_ld)
-	    {
-		scc_ch2_cycles = 0;
-	    }
-	    else
-	    {
-		scc_ch2_cycles = ((scc_ch2_cycles + 1) & 0xF);
-	    }
-
-	    scc_ch2_fcounter_lo_borrow = (scc_ch2_fcounter_lo == 0);
-	    scc_ch2_fcounter_mid_borrow = (scc_ch2_fcounter_mid == 0);
-	    scc_ch2_fcounter_hi_borrow = (scc_ch2_fcounter_hi == 0);
-
-	    scc_ch2_fcounter_hi_cnt = (testbit(scc_test_reg, 0) ? true : (scc_ch2_fcounter_lo_borrow && scc_ch2_fcounter_mid_borrow));
-
-	    if (!scc_ch2_fcounter_ld)
-	    {
-		scc_ch2_fcounter_lo = (scc_ch2_freq & 0xF);
-		scc_ch2_fcounter_mid = ((scc_ch2_freq >> 4) & 0xF);
-		scc_ch2_fcounter_hi = ((scc_ch2_freq >> 8) & 0xF);
-	    }
-	    else
-	    {
-		if (scc_ch2_fcounter_hi_cnt)
-		{
-		    scc_ch2_fcounter_hi = ((scc_ch2_fcounter_hi - 1) & 0xF);
-		}
-
-		if (scc_ch2_fcounter_lo_borrow)
-		{
-		    scc_ch2_fcounter_mid = ((scc_ch2_fcounter_mid - 1) & 0xF);
-		}
-
-		scc_ch2_fcounter_lo = ((scc_ch2_fcounter_lo - 1) & 0xF);
-	    }
-
-	    scc_ch2_icounter_cnt = testbit(scc_test_reg, 1) ? (scc_ch2_fcounter_lo_borrow && scc_ch2_fcounter_mid_borrow) : (scc_ch2_fcounter_hi_cnt && scc_ch2_fcounter_hi_borrow);
-
-	    if (testbit(scc_test_reg, 5) && scc_ch2_fchange)
-	    {
-		scc_ch2_icounter = 0x1F;
-	    }
-	    else if (scc_ch2_icounter_cnt)
-	    {
-		scc_ch2_icounter = ((scc_ch2_icounter - 1) & 0x1F);
-	    }
-	}
-
-	scc_ch2_addr_cntr = (~scc_ch2_icounter & 0x1F);
-
-	if (clk_rise)
-	{
-	    if (!scc_ch3_fcounter_ld)
-	    {
-		scc_ch3_cycles = 0;
-	    }
-	    else
-	    {
-		scc_ch3_cycles = ((scc_ch3_cycles + 1) & 0xF);
-	    }
-
-	    scc_ch3_fcounter_lo_borrow = (scc_ch3_fcounter_lo == 0);
-	    scc_ch3_fcounter_mid_borrow = (scc_ch3_fcounter_mid == 0);
-	    scc_ch3_fcounter_hi_borrow = (scc_ch3_fcounter_hi == 0);
-
-	    scc_ch3_fcounter_hi_cnt = (testbit(scc_test_reg, 0) ? true : (scc_ch3_fcounter_lo_borrow && scc_ch3_fcounter_mid_borrow));
-
-	    if (!scc_ch3_fcounter_ld)
-	    {
-		scc_ch3_fcounter_lo = (scc_ch3_freq & 0xF);
-		scc_ch3_fcounter_mid = ((scc_ch3_freq >> 4) & 0xF);
-		scc_ch3_fcounter_hi = ((scc_ch3_freq >> 8) & 0xF);
-	    }
-	    else
-	    {
-		if (scc_ch3_fcounter_hi_cnt)
-		{
-		    scc_ch3_fcounter_hi = ((scc_ch3_fcounter_hi - 1) & 0xF);
-		}
-
-		if (scc_ch3_fcounter_lo_borrow)
-		{
-		    scc_ch3_fcounter_mid = ((scc_ch3_fcounter_mid - 1) & 0xF);
-		}
-
-		scc_ch3_fcounter_lo = ((scc_ch3_fcounter_lo - 1) & 0xF);
-	    }
-
-	    scc_ch3_icounter_cnt = testbit(scc_test_reg, 1) ? (scc_ch3_fcounter_lo_borrow && scc_ch3_fcounter_mid_borrow) : (scc_ch3_fcounter_hi_cnt && scc_ch3_fcounter_hi_borrow);
-
-	    if (testbit(scc_test_reg, 5) && scc_ch3_fchange)
-	    {
-		scc_ch3_icounter = 0x1F;
-	    }
-	    else if (scc_ch3_icounter_cnt)
-	    {
-		scc_ch3_icounter = ((scc_ch3_icounter - 1) & 0x1F);
-	    }
-	}
-
-	scc_ch3_addr_cntr = (~scc_ch3_icounter & 0x1F);
-    }
-
-    void K051649::tickSCC_Out()
+    void K051649::tickSCC_Channel1Out()
     {
 	if (!current_pins.pin_res)
 	{
@@ -504,14 +403,71 @@ namespace beekonami
 	}
 	else if (!prev_ch1_accshift_en && scc_ch1_accshift_en)
 	{
-	    uint8_t sound_out = ((scc_ch1_accshift << 3) | scc_ch1_lower);
-	    scc_ch1_out = sound_out;
+	    scc_ch1_out = ((scc_ch1_accshift << 3) | scc_ch1_lower);
 	}
 
 	prev_ch1_accshift_en = scc_ch1_accshift_en;
 	prev_ch1_accshift_en_next = scc_ch1_accshift_en_next;
 	prev_ch1_mul_rst = scc_ch1_mul_rst;
+    }
 
+    void K051649::tickSCC_Channel1Counter()
+    {
+	if (clk_rise)
+	{
+	    if (!scc_ch1_fcounter_ld)
+	    {
+		scc_ch1_cycles = 0;
+	    }
+	    else
+	    {
+		scc_ch1_cycles = ((scc_ch1_cycles + 1) & 0xF);
+	    }
+
+	    scc_ch1_fcounter_lo_borrow = (scc_ch1_fcounter_lo == 0);
+	    scc_ch1_fcounter_mid_borrow = (scc_ch1_fcounter_mid == 0);
+	    scc_ch1_fcounter_hi_borrow = (scc_ch1_fcounter_hi == 0);
+
+	    scc_ch1_fcounter_hi_cnt = (testbit(scc_test_reg, 0) ? true : (scc_ch1_fcounter_lo_borrow && scc_ch1_fcounter_mid_borrow));
+
+	    if (!scc_ch1_fcounter_ld)
+	    {
+		scc_ch1_fcounter_lo = (scc_ch1_freq & 0xF);
+		scc_ch1_fcounter_mid = ((scc_ch1_freq >> 4) & 0xF);
+		scc_ch1_fcounter_hi = ((scc_ch1_freq >> 8) & 0xF);
+	    }
+	    else
+	    {
+		if (scc_ch1_fcounter_hi_cnt)
+		{
+		    scc_ch1_fcounter_hi = ((scc_ch1_fcounter_hi - 1) & 0xF);
+		}
+
+		if (scc_ch1_fcounter_lo_borrow)
+		{
+		    scc_ch1_fcounter_mid = ((scc_ch1_fcounter_mid - 1) & 0xF);
+		}
+
+		scc_ch1_fcounter_lo = ((scc_ch1_fcounter_lo - 1) & 0xF);
+	    }
+
+	    scc_ch1_icounter_cnt = testbit(scc_test_reg, 1) ? (scc_ch1_fcounter_lo_borrow && scc_ch1_fcounter_mid_borrow) : (scc_ch1_fcounter_hi_cnt && scc_ch1_fcounter_hi_borrow);
+
+	    if (testbit(scc_test_reg, 5) && scc_ch1_fchange)
+	    {
+		scc_ch1_icounter = 0x1F;
+	    }
+	    else if (scc_ch1_icounter_cnt)
+	    {
+		scc_ch1_icounter = ((scc_ch1_icounter - 1) & 0x1F);
+	    }
+	}
+
+	scc_ch1_addr_cntr = (~scc_ch1_icounter & 0x1F);
+    }
+
+    void K051649::tickSCC_Channel2Out()
+    {
 	if (!current_pins.pin_res)
 	{
 	    scc_ch2_mul_rst = true;
@@ -600,14 +556,71 @@ namespace beekonami
 	}
 	else if (!prev_ch2_accshift_en && scc_ch2_accshift_en)
 	{
-	    uint8_t sound_out = ((scc_ch2_accshift << 3) | scc_ch2_lower);
-	    scc_ch2_out = sound_out;
+	    scc_ch2_out = ((scc_ch2_accshift << 3) | scc_ch2_lower);
 	}
 
 	prev_ch2_accshift_en = scc_ch2_accshift_en;
 	prev_ch2_accshift_en_next = scc_ch2_accshift_en_next;
 	prev_ch2_mul_rst = scc_ch2_mul_rst;
+    }
 
+    void K051649::tickSCC_Channel2Counter()
+    {
+	if (clk_rise)
+	{
+	    if (!scc_ch2_fcounter_ld)
+	    {
+		scc_ch2_cycles = 0;
+	    }
+	    else
+	    {
+		scc_ch2_cycles = ((scc_ch2_cycles + 1) & 0xF);
+	    }
+
+	    scc_ch2_fcounter_lo_borrow = (scc_ch2_fcounter_lo == 0);
+	    scc_ch2_fcounter_mid_borrow = (scc_ch2_fcounter_mid == 0);
+	    scc_ch2_fcounter_hi_borrow = (scc_ch2_fcounter_hi == 0);
+
+	    scc_ch2_fcounter_hi_cnt = (testbit(scc_test_reg, 0) ? true : (scc_ch2_fcounter_lo_borrow && scc_ch2_fcounter_mid_borrow));
+
+	    if (!scc_ch2_fcounter_ld)
+	    {
+		scc_ch2_fcounter_lo = (scc_ch2_freq & 0xF);
+		scc_ch2_fcounter_mid = ((scc_ch2_freq >> 4) & 0xF);
+		scc_ch2_fcounter_hi = ((scc_ch2_freq >> 8) & 0xF);
+	    }
+	    else
+	    {
+		if (scc_ch2_fcounter_hi_cnt)
+		{
+		    scc_ch2_fcounter_hi = ((scc_ch2_fcounter_hi - 1) & 0xF);
+		}
+
+		if (scc_ch2_fcounter_lo_borrow)
+		{
+		    scc_ch2_fcounter_mid = ((scc_ch2_fcounter_mid - 1) & 0xF);
+		}
+
+		scc_ch2_fcounter_lo = ((scc_ch2_fcounter_lo - 1) & 0xF);
+	    }
+
+	    scc_ch2_icounter_cnt = testbit(scc_test_reg, 1) ? (scc_ch2_fcounter_lo_borrow && scc_ch2_fcounter_mid_borrow) : (scc_ch2_fcounter_hi_cnt && scc_ch2_fcounter_hi_borrow);
+
+	    if (testbit(scc_test_reg, 5) && scc_ch2_fchange)
+	    {
+		scc_ch2_icounter = 0x1F;
+	    }
+	    else if (scc_ch2_icounter_cnt)
+	    {
+		scc_ch2_icounter = ((scc_ch2_icounter - 1) & 0x1F);
+	    }
+	}
+
+	scc_ch2_addr_cntr = (~scc_ch2_icounter & 0x1F);
+    }
+
+    void K051649::tickSCC_Channel3Out()
+    {
 	if (!current_pins.pin_res)
 	{
 	    scc_ch3_mul_rst = true;
@@ -696,13 +709,128 @@ namespace beekonami
 	}
 	else if (!prev_ch3_accshift_en && scc_ch3_accshift_en)
 	{
-	    uint8_t sound_out = ((scc_ch3_accshift << 3) | scc_ch3_lower);
-	    scc_ch3_out = sound_out;
+	    scc_ch3_out = ((scc_ch3_accshift << 3) | scc_ch3_lower);
 	}
 
 	prev_ch3_accshift_en = scc_ch3_accshift_en;
 	prev_ch3_accshift_en_next = scc_ch3_accshift_en_next;
 	prev_ch3_mul_rst = scc_ch3_mul_rst;
+    }
+
+    void K051649::tickSCC_Channel3Counter()
+    {
+	if (clk_rise)
+	{
+	    if (!scc_ch3_fcounter_ld)
+	    {
+		scc_ch3_cycles = 0;
+	    }
+	    else
+	    {
+		scc_ch3_cycles = ((scc_ch3_cycles + 1) & 0xF);
+	    }
+
+	    scc_ch3_fcounter_lo_borrow = (scc_ch3_fcounter_lo == 0);
+	    scc_ch3_fcounter_mid_borrow = (scc_ch3_fcounter_mid == 0);
+	    scc_ch3_fcounter_hi_borrow = (scc_ch3_fcounter_hi == 0);
+
+	    scc_ch3_fcounter_hi_cnt = (testbit(scc_test_reg, 0) ? true : (scc_ch3_fcounter_lo_borrow && scc_ch3_fcounter_mid_borrow));
+
+	    if (!scc_ch3_fcounter_ld)
+	    {
+		scc_ch3_fcounter_lo = (scc_ch3_freq & 0xF);
+		scc_ch3_fcounter_mid = ((scc_ch3_freq >> 4) & 0xF);
+		scc_ch3_fcounter_hi = ((scc_ch3_freq >> 8) & 0xF);
+	    }
+	    else
+	    {
+		if (scc_ch3_fcounter_hi_cnt)
+		{
+		    scc_ch3_fcounter_hi = ((scc_ch3_fcounter_hi - 1) & 0xF);
+		}
+
+		if (scc_ch3_fcounter_lo_borrow)
+		{
+		    scc_ch3_fcounter_mid = ((scc_ch3_fcounter_mid - 1) & 0xF);
+		}
+
+		scc_ch3_fcounter_lo = ((scc_ch3_fcounter_lo - 1) & 0xF);
+	    }
+
+	    scc_ch3_icounter_cnt = testbit(scc_test_reg, 1) ? (scc_ch3_fcounter_lo_borrow && scc_ch3_fcounter_mid_borrow) : (scc_ch3_fcounter_hi_cnt && scc_ch3_fcounter_hi_borrow);
+
+	    if (testbit(scc_test_reg, 5) && scc_ch3_fchange)
+	    {
+		scc_ch3_icounter = 0x1F;
+	    }
+	    else if (scc_ch3_icounter_cnt)
+	    {
+		scc_ch3_icounter = ((scc_ch3_icounter - 1) & 0x1F);
+	    }
+	}
+
+	scc_ch3_addr_cntr = (~scc_ch3_icounter & 0x1F);
+    }
+
+    void K051649::tickSCC_Channels45Timing()
+    {
+	bool ch45_ram_acc = (is_scc_sel && ((scc_addr >= 0x60) && (scc_addr < 0x80)));
+
+	if (!current_pins.pin_res)
+	{
+	    ch45_counter = 0;
+	    ch45_clock = false;
+	    prev_ch45_clock = false;
+	}
+	else if (clk_rise)
+	{
+	    if (ch45_counter == 0)
+	    {
+		ch45_clock = prev_ch45_clock;
+		prev_ch45_clock = !ch45_clock;
+		ch45_counter = 7;
+	    }
+	    else
+	    {
+		ch45_counter -= 1;
+	    }
+	}
+
+	bool addrsel_bit1 = (((!ch45_clock && !ch45_ram_acc) || testbit(scc_test_reg, 7)) && !testbit(scc_test_reg, 7));
+	bool addrsel_bit0 = (((ch45_clock && !ch45_ram_acc) || testbit(scc_test_reg, 6)) && !testbit(scc_test_reg, 6));
+
+	scc_ch45_addrsel = ((addrsel_bit1 << 1) | addrsel_bit0);
+    }
+
+    void K051649::tickSCC_Channel1()
+    {
+	tickSCC_Channel1Out();
+	tickSCC_Channel1Counter();
+    }
+
+    void K051649::tickSCC_Channel2()
+    {
+	tickSCC_Channel2Out();
+	tickSCC_Channel2Counter();
+    }
+
+    void K051649::tickSCC_Channel3()
+    {
+	tickSCC_Channel3Out();
+	tickSCC_Channel3Counter();
+    }
+
+    void K051649::tickSCC_Channels45()
+    {
+	return;
+    }
+
+    void K051649::tickSCC_Channels()
+    {
+	tickSCC_Channel1();
+	tickSCC_Channel2();
+	tickSCC_Channel3();
+	tickSCC_Channels45();
     }
 
     uint8_t K051649::getNextAccshift(uint8_t accshift, uint8_t weighted_vol, bool weighted_vol_carry)

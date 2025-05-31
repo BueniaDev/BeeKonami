@@ -55,8 +55,23 @@ namespace beekonami
 	    void tickSCC();
 	    void tickSCC_IO();
 	    void tickSCC_Channels();
-	    void tickSCC_Out();
+	    void tickSCC_FREF();
 	    void tickMixer();
+
+	    void tickSCC_Channel1();
+	    void tickSCC_Channel2();
+	    void tickSCC_Channel3();
+	    void tickSCC_Channels45();
+
+	    void tickSCC_Channel1Counter();
+	    void tickSCC_Channel2Counter();
+	    void tickSCC_Channel3Counter();
+
+	    void tickSCC_Channel1Out();
+	    void tickSCC_Channel2Out();
+	    void tickSCC_Channel3Out();
+
+	    void tickSCC_Channels45Timing();
 
 	    bool is_cs = false;
 	    bool is_cs_edge = false;
@@ -76,8 +91,7 @@ namespace beekonami
 	    uint8_t scc_ch1_addr = 0;
 	    uint8_t scc_ch2_addr = 0;
 	    uint8_t scc_ch3_addr = 0;
-
-	    uint8_t scc_ch1_ram_data = 0;
+	    uint8_t scc_ch45_addr = 0;
 
 	    uint8_t bank_reg[4] = {0, 0, 0, 0};
 
@@ -86,6 +100,7 @@ namespace beekonami
 	    array<uint8_t, 32> scc_ch1_ram;
 	    array<uint8_t, 32> scc_ch2_ram;
 	    array<uint8_t, 32> scc_ch3_ram;
+	    array<uint8_t, 32> scc_ch45_ram;
 
 	    uint16_t scc_ch1_freq = 0;
 	    bool scc_ch1_fchange = false;
@@ -212,6 +227,30 @@ namespace beekonami
 	    uint8_t scc_ch3_lower = 0;
 
 	    bool scc_ch3_mute = false;
+
+	    // Channel 4
+	    uint16_t scc_ch4_freq = 0;
+	    bool scc_ch4_fchange = false;
+
+	    uint8_t scc_ch4_addr_cntr = 0;
+	    bool scc_ch4_fcounter_ld = false;
+	    bool scc_ch4_icounter_cnt = false;
+
+	    // Channel 5
+	    uint16_t scc_ch5_freq = 0;
+	    bool scc_ch5_fchange = false;
+
+	    uint8_t scc_ch5_addr_cntr = 0;
+	    bool scc_ch5_fcounter_ld = false;
+	    bool scc_ch5_icounter_cnt = false;
+
+	    // Channels 4 and 5
+	    uint8_t scc_ch45_data = 0;
+	    uint8_t scc_ch45_addrsel = 0;
+
+	    uint8_t ch45_counter = 0;
+	    bool ch45_clock = false;
+	    bool prev_ch45_clock = false;
 
 	    uint8_t getNextAccshift(uint8_t accshift, uint8_t weighted_vol, bool weighted_vol_carry);
 
