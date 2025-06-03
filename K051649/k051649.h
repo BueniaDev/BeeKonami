@@ -66,10 +66,14 @@ namespace beekonami
 	    void tickSCC_Channel1Counter();
 	    void tickSCC_Channel2Counter();
 	    void tickSCC_Channel3Counter();
+	    void tickSCC_Channel4Counter();
+	    void tickSCC_Channel5Counter();
 
 	    void tickSCC_Channel1Out();
 	    void tickSCC_Channel2Out();
 	    void tickSCC_Channel3Out();
+	    void tickSCC_Channel4Out();
+	    void tickSCC_Channel5Out();
 
 	    void tickSCC_Channels45Timing();
 
@@ -102,6 +106,7 @@ namespace beekonami
 	    array<uint8_t, 32> scc_ch3_ram;
 	    array<uint8_t, 32> scc_ch45_ram;
 
+	    // Channel 1
 	    uint16_t scc_ch1_freq = 0;
 	    bool scc_ch1_fchange = false;
 
@@ -144,6 +149,7 @@ namespace beekonami
 
 	    bool scc_ch1_mute = false;
 
+	    // Channel 2
 	    uint16_t scc_ch2_freq = 0;
 	    bool scc_ch2_fchange = false;
 
@@ -186,6 +192,7 @@ namespace beekonami
 
 	    bool scc_ch2_mute = false;
 
+	    // Channel 3
 	    uint16_t scc_ch3_freq = 0;
 	    bool scc_ch3_fchange = false;
 
@@ -236,6 +243,41 @@ namespace beekonami
 	    bool scc_ch4_fcounter_ld = false;
 	    bool scc_ch4_icounter_cnt = false;
 
+	    uint8_t scc_ch4_cycles = 0;
+	    uint8_t scc_ch4_fcounter_lo = 0;
+	    uint8_t scc_ch4_fcounter_mid = 0;
+	    uint8_t scc_ch4_fcounter_hi = 0;
+
+	    bool scc_ch4_fcounter_lo_borrow = false;
+	    bool scc_ch4_fcounter_mid_borrow = false;
+	    bool scc_ch4_fcounter_hi_borrow = false;
+	    bool scc_ch4_fcounter_hi_cnt = false;
+
+	    uint8_t scc_ch4_icounter = 0;
+
+	    uint8_t scc_ch4_data = 0;
+
+	    bool scc_ch4_serial = false;
+	    bool prev_ch4_serial = false;
+	    bool scc_ch4_mul_rst = false;
+	    bool prev_ch4_mul_rst = false;
+
+	    uint8_t scc_ch4_vol = 0;
+	    uint8_t scc_ch4_current_vol = 0;
+
+	    uint8_t scc_ch4_weighted_vol = 0;
+	    bool scc_ch4_weighted_vol_carry = 0;
+
+	    bool scc_ch4_accshift_en = false;
+	    bool prev_ch4_accshift_en = false;
+	    bool scc_ch4_accshift_en_next = false;
+	    bool prev_ch4_accshift_en_next = false;
+	    uint8_t scc_ch4_accshift = 0;
+	    uint8_t scc_ch4_accshift_next = 0;
+	    uint8_t scc_ch4_lower = 0;
+
+	    bool scc_ch4_mute = false;
+
 	    // Channel 5
 	    uint16_t scc_ch5_freq = 0;
 	    bool scc_ch5_fchange = false;
@@ -244,6 +286,41 @@ namespace beekonami
 	    bool scc_ch5_fcounter_ld = false;
 	    bool scc_ch5_icounter_cnt = false;
 
+	    uint8_t scc_ch5_cycles = 0;
+	    uint8_t scc_ch5_fcounter_lo = 0;
+	    uint8_t scc_ch5_fcounter_mid = 0;
+	    uint8_t scc_ch5_fcounter_hi = 0;
+
+	    bool scc_ch5_fcounter_lo_borrow = false;
+	    bool scc_ch5_fcounter_mid_borrow = false;
+	    bool scc_ch5_fcounter_hi_borrow = false;
+	    bool scc_ch5_fcounter_hi_cnt = false;
+
+	    uint8_t scc_ch5_icounter = 0;
+
+	    uint8_t scc_ch5_data = 0;
+
+	    bool scc_ch5_serial = false;
+	    bool prev_ch5_serial = false;
+	    bool scc_ch5_mul_rst = false;
+	    bool prev_ch5_mul_rst = false;
+
+	    uint8_t scc_ch5_vol = 0;
+	    uint8_t scc_ch5_current_vol = 0;
+
+	    uint8_t scc_ch5_weighted_vol = 0;
+	    bool scc_ch5_weighted_vol_carry = 0;
+
+	    bool scc_ch5_accshift_en = false;
+	    bool prev_ch5_accshift_en = false;
+	    bool scc_ch5_accshift_en_next = false;
+	    bool prev_ch5_accshift_en_next = false;
+	    uint8_t scc_ch5_accshift = 0;
+	    uint8_t scc_ch5_accshift_next = 0;
+	    uint8_t scc_ch5_lower = 0;
+
+	    bool scc_ch5_mute = false;
+
 	    // Channels 4 and 5
 	    uint8_t scc_ch45_data = 0;
 	    uint8_t scc_ch45_addrsel = 0;
@@ -251,6 +328,9 @@ namespace beekonami
 	    uint8_t ch45_counter = 0;
 	    bool ch45_clock = false;
 	    bool prev_ch45_clock = false;
+
+	    bool ch4_wavelatch_edge = false;
+	    bool ch5_wavelatch_edge = false;
 
 	    uint8_t getNextAccshift(uint8_t accshift, uint8_t weighted_vol, bool weighted_vol_carry);
 

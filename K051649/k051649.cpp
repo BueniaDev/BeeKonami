@@ -16,7 +16,7 @@
     along with BeeKonami.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-// BeeKonami-K051649 (WIP)
+// BeeKonami-K051649
 // Chip name: K051649 (SCC)
 // Chip description: Wavetable sound chip
 //
@@ -26,11 +26,7 @@
 // for this IC, which can be found here:
 // https://github.com/ika-musume/IKASCC/blob/main/docs/K051649.pdf
 // 
-// The following features are currently unimplemented:
-//
-// Remainder of Channels 4 and 5
-//
-// However, work is being done on ALL of those fronts, so don't lose hope here!
+// This core is pretty much complete, AFAIK.
 
 
 #include "k051649.h"
@@ -41,21 +37,19 @@ namespace beekonami
 {
     K051649::K051649()
     {
-
+	scc_ch1_ram.fill(0);
+	scc_ch2_ram.fill(0);
+	scc_ch3_ram.fill(0);
+	scc_ch45_ram.fill(0);
     }
 
     K051649::~K051649()
     {
-
     }
 
     void K051649::init()
     {
 	current_pins = {};
-
-	scc_ch1_ram.fill(0);
-	scc_ch2_ram.fill(0);
-	scc_ch3_ram.fill(0);
     }
 
     void K051649::reset()
@@ -76,7 +70,6 @@ namespace beekonami
 
     void K051649::tickInternal()
     {
-	// TODO: Implement FREF pin and channels 4-5
 	tickVRC();
 	tickSCC();
 	tickMixer();
@@ -172,6 +165,7 @@ namespace beekonami
 	scc_ch4_fchange = (is_write_edge && is_scc_sel && is_freq_range && ((scc_freq_addr == 6) || (scc_freq_addr == 7)));
 	scc_ch5_fchange = (is_write_edge && is_scc_sel && is_freq_range && ((scc_freq_addr == 8) || (scc_freq_addr == 9)));
 
+	// SCC RAM/register write logic
 	if (is_write_edge && is_scc_sel)
 	{
 	    if ((scc_addr < 0x20) && !testbit(scc_test_reg, 6))
@@ -189,7 +183,6 @@ namespace beekonami
 	    else if (((scc_addr >= 0x60) && (scc_addr < 0x80)) && !testbit(scc_test_reg, 6) && !testbit(scc_test_reg, 7))
 	    {
 		scc_ch45_ram[scc_ch45_addr] = current_pins.data;
-		// cout << "Writing value of " << hex << int(current_pins.data) << " to SCC ch4/ch5 RAM" << endl;
 	    }
 	    else if ((scc_addr >= 0x80) && (scc_addr < 0xA0))
 	    {
@@ -262,10 +255,20 @@ namespace beekonami
 			scc_ch3_vol = (current_pins.data & 0xF);
 		    }
 		    break;
+		    case 0xD:
+		    {
+			scc_ch4_vol = (current_pins.data & 0xF);
+		    }
+		    break;
+		    case 0xE:
+		    {
+			scc_ch5_vol = (current_pins.data & 0xF);
+		    }
+		    break;
 		    case 0xF:
 		    {
-			// scc_ch5_mute = testbit(current_pins.data, 4);
-			// scc_ch4_mute = testbit(cuurent_pins.data, 3);
+			scc_ch5_mute = testbit(current_pins.data, 4);
+			scc_ch4_mute = testbit(current_pins.data, 3);
 			scc_ch3_mute = testbit(current_pins.data, 2);
 			scc_ch2_mute = testbit(current_pins.data, 1);
 			scc_ch1_mute = testbit(current_pins.data, 0);
@@ -292,6 +295,7 @@ namespace beekonami
 	scc_ch4_fcounter_ld = !(scc_ch4_fchange || scc_ch4_icounter_cnt);
 	scc_ch5_fcounter_ld = !(scc_ch5_fchange || scc_ch5_icounter_cnt);
 
+	// SCC RAM read logic
 	if (is_read_edge && is_scc_sel && (scc_addr < 0x80))
 	{
 	    if (scc_addr < 0x20)
@@ -507,8 +511,8 @@ namespace beekonami
 	}
 	else
 	{
-	    uint8_t ch1_vol_mask = (scc_ch2_serial) ? 0xF : 0;
-	    scc_ch2_weighted_vol = ((scc_ch2_serial << 4) | (scc_ch2_current_vol ^ ch1_vol_mask));
+	    uint8_t ch2_vol_mask = (scc_ch2_serial) ? 0xF : 0;
+	    scc_ch2_weighted_vol = ((scc_ch2_serial << 4) | (scc_ch2_current_vol ^ ch2_vol_mask));
 	    scc_ch2_weighted_vol_carry = scc_ch2_serial;
 	}
 
@@ -660,8 +664,8 @@ namespace beekonami
 	}
 	else
 	{
-	    uint8_t ch1_vol_mask = (scc_ch3_serial) ? 0xF : 0;
-	    scc_ch3_weighted_vol = ((scc_ch3_serial << 4) | (scc_ch3_current_vol ^ ch1_vol_mask));
+	    uint8_t ch3_vol_mask = (scc_ch3_serial) ? 0xF : 0;
+	    scc_ch3_weighted_vol = ((scc_ch3_serial << 4) | (scc_ch3_current_vol ^ ch3_vol_mask));
 	    scc_ch3_weighted_vol_carry = scc_ch3_serial;
 	}
 
@@ -774,32 +778,347 @@ namespace beekonami
 
     void K051649::tickSCC_Channels45Timing()
     {
-	bool ch45_ram_acc = (is_scc_sel && ((scc_addr >= 0x60) && (scc_addr < 0x80)));
+	bool ch45_ram_acc = (is_cs && is_scc_sel && ((scc_addr >= 0x60) && (scc_addr < 0x80)));
 
 	if (!current_pins.pin_res)
 	{
 	    ch45_counter = 0;
 	    ch45_clock = false;
-	    prev_ch45_clock = false;
 	}
 	else if (clk_rise)
 	{
-	    if (ch45_counter == 0)
+	    ch45_counter += 1;
+
+	    if (ch45_counter == 48)
 	    {
-		ch45_clock = prev_ch45_clock;
-		prev_ch45_clock = !ch45_clock;
-		ch45_counter = 7;
-	    }
-	    else
-	    {
-		ch45_counter -= 1;
+		ch45_counter = 0;
 	    }
 	}
+
+	ch45_clock = ((ch45_counter >= 24) && (ch45_counter < 40));
+	ch4_wavelatch_edge = (clk_rise && (ch45_counter == 16));
+	ch5_wavelatch_edge = (clk_rise && (ch45_counter == 32));
 
 	bool addrsel_bit1 = (((!ch45_clock && !ch45_ram_acc) || testbit(scc_test_reg, 7)) && !testbit(scc_test_reg, 7));
 	bool addrsel_bit0 = (((ch45_clock && !ch45_ram_acc) || testbit(scc_test_reg, 6)) && !testbit(scc_test_reg, 6));
 
 	scc_ch45_addrsel = ((addrsel_bit1 << 1) | addrsel_bit0);
+    }
+
+    void K051649::tickSCC_Channel4Out()
+    {
+	if (clk_rise && ch4_wavelatch_edge)
+	{
+	    scc_ch4_data = scc_ch45_data;
+	}
+
+	if (!current_pins.pin_res)
+	{
+	    scc_ch4_mul_rst = true;
+	}
+	else if (clk_rise)
+	{
+	    scc_ch4_mul_rst = scc_ch4_fcounter_ld;
+	}
+
+	if (!scc_ch4_mul_rst)
+	{
+	    prev_ch4_serial = false;
+	}
+	else if (clk_rise)
+	{
+	    prev_ch4_serial = scc_ch4_serial;
+	}
+
+	if (clk_rise)
+	{
+	    scc_ch4_serial = testbit(scc_ch4_data, (scc_ch4_cycles & 0x7));
+	}
+
+	if (!current_pins.pin_res)
+	{
+	    scc_ch4_current_vol = 0;
+	}
+	else if (!prev_ch4_mul_rst && scc_ch4_mul_rst)
+	{
+	    scc_ch4_current_vol = scc_ch4_vol;
+	}
+
+	if (prev_ch4_serial == scc_ch4_serial)
+	{
+	    scc_ch4_weighted_vol = 0;
+	    scc_ch4_weighted_vol_carry = false;
+	}
+	else
+	{
+	    uint8_t ch4_vol_mask = (scc_ch4_serial) ? 0xF : 0;
+	    scc_ch4_weighted_vol = ((scc_ch4_serial << 4) | (scc_ch4_current_vol ^ ch4_vol_mask));
+	    scc_ch4_weighted_vol_carry = scc_ch4_serial;
+	}
+
+	if (!scc_ch4_mul_rst)
+	{
+	    scc_ch4_accshift = 0;
+	}
+	else if (clk_rise)
+	{
+	    scc_ch4_accshift = scc_ch4_accshift_next;
+	}
+
+	scc_ch4_accshift_next = getNextAccshift(scc_ch4_accshift, scc_ch4_weighted_vol, scc_ch4_weighted_vol_carry);
+
+	if (!scc_ch4_mul_rst)
+	{
+	    scc_ch4_lower = 0;
+	}
+	else if (clk_rise)
+	{
+	    scc_ch4_lower = ((testbit(scc_ch4_accshift, 0) << 2) | ((scc_ch4_lower >> 1) & 0x3));
+	}
+
+	if (!scc_ch4_mul_rst)
+	{
+	    scc_ch4_accshift_en_next = false;
+	}
+	else if (clk_fall)
+	{
+	    scc_ch4_accshift_en_next = (testbit(scc_ch4_cycles, 3) && testbit(scc_ch4_cycles, 0));
+	}
+
+	if (!scc_ch4_mul_rst)
+	{
+	    scc_ch4_accshift_en = false;
+	}
+	else if (!prev_ch4_accshift_en_next && scc_ch4_accshift_en_next)
+	{
+	    scc_ch4_accshift_en = true;
+	}
+
+	if (!scc_ch4_mute)
+	{
+	    scc_ch4_out = 0;
+	}
+	else if (!prev_ch4_accshift_en && scc_ch4_accshift_en)
+	{
+	    scc_ch4_out = ((scc_ch4_accshift << 3) | scc_ch4_lower);
+	}
+
+	prev_ch4_accshift_en = scc_ch4_accshift_en;
+	prev_ch4_accshift_en_next = scc_ch4_accshift_en_next;
+	prev_ch4_mul_rst = scc_ch4_mul_rst;
+    }
+
+    void K051649::tickSCC_Channel5Out()
+    {
+	if (clk_rise && ch5_wavelatch_edge)
+	{
+	    scc_ch5_data = scc_ch45_data;
+	}
+
+	if (!current_pins.pin_res)
+	{
+	    scc_ch5_mul_rst = true;
+	}
+	else if (clk_rise)
+	{
+	    scc_ch5_mul_rst = scc_ch5_fcounter_ld;
+	}
+
+	if (!scc_ch5_mul_rst)
+	{
+	    prev_ch5_serial = false;
+	}
+	else if (clk_rise)
+	{
+	    prev_ch5_serial = scc_ch5_serial;
+	}
+
+	if (clk_rise)
+	{
+	    scc_ch5_serial = testbit(scc_ch5_data, (scc_ch5_cycles & 0x7));
+	}
+
+	if (!current_pins.pin_res)
+	{
+	    scc_ch5_current_vol = 0;
+	}
+	else if (!prev_ch5_mul_rst && scc_ch5_mul_rst)
+	{
+	    scc_ch5_current_vol = scc_ch5_vol;
+	}
+
+	if (prev_ch5_serial == scc_ch5_serial)
+	{
+	    scc_ch5_weighted_vol = 0;
+	    scc_ch5_weighted_vol_carry = false;
+	}
+	else
+	{
+	    uint8_t ch5_vol_mask = (scc_ch5_serial) ? 0xF : 0;
+	    scc_ch5_weighted_vol = ((scc_ch5_serial << 4) | (scc_ch5_current_vol ^ ch5_vol_mask));
+	    scc_ch5_weighted_vol_carry = scc_ch5_serial;
+	}
+
+	if (!scc_ch5_mul_rst)
+	{
+	    scc_ch5_accshift = 0;
+	}
+	else if (clk_rise)
+	{
+	    scc_ch5_accshift = scc_ch5_accshift_next;
+	}
+
+	scc_ch5_accshift_next = getNextAccshift(scc_ch5_accshift, scc_ch5_weighted_vol, scc_ch5_weighted_vol_carry);
+
+	if (!scc_ch5_mul_rst)
+	{
+	    scc_ch5_lower = 0;
+	}
+	else if (clk_rise)
+	{
+	    scc_ch5_lower = ((testbit(scc_ch5_accshift, 0) << 2) | ((scc_ch5_lower >> 1) & 0x3));
+	}
+
+	if (!scc_ch5_mul_rst)
+	{
+	    scc_ch5_accshift_en_next = false;
+	}
+	else if (clk_fall)
+	{
+	    scc_ch5_accshift_en_next = (testbit(scc_ch5_cycles, 3) && testbit(scc_ch5_cycles, 0));
+	}
+
+	if (!scc_ch5_mul_rst)
+	{
+	    scc_ch5_accshift_en = false;
+	}
+	else if (!prev_ch5_accshift_en_next && scc_ch5_accshift_en_next)
+	{
+	    scc_ch5_accshift_en = true;
+	}
+
+	if (!scc_ch5_mute)
+	{
+	    scc_ch5_out = 0;
+	}
+	else if (!prev_ch5_accshift_en && scc_ch5_accshift_en)
+	{
+	    scc_ch5_out = ((scc_ch5_accshift << 3) | scc_ch5_lower);
+	}
+
+	prev_ch5_accshift_en = scc_ch5_accshift_en;
+	prev_ch5_accshift_en_next = scc_ch5_accshift_en_next;
+	prev_ch5_mul_rst = scc_ch5_mul_rst;
+    }
+
+    void K051649::tickSCC_Channel4Counter()
+    {
+	if (clk_rise)
+	{
+	    if (!scc_ch4_fcounter_ld)
+	    {
+		scc_ch4_cycles = 0;
+	    }
+	    else
+	    {
+		scc_ch4_cycles = ((scc_ch4_cycles + 1) & 0xF);
+	    }
+
+	    scc_ch4_fcounter_lo_borrow = (scc_ch4_fcounter_lo == 0);
+	    scc_ch4_fcounter_mid_borrow = (scc_ch4_fcounter_mid == 0);
+	    scc_ch4_fcounter_hi_borrow = (scc_ch4_fcounter_hi == 0);
+
+	    scc_ch4_fcounter_hi_cnt = (testbit(scc_test_reg, 0) ? true : (scc_ch4_fcounter_lo_borrow && scc_ch4_fcounter_mid_borrow));
+
+	    if (!scc_ch4_fcounter_ld)
+	    {
+		scc_ch4_fcounter_lo = (scc_ch4_freq & 0xF);
+		scc_ch4_fcounter_mid = ((scc_ch4_freq >> 4) & 0xF);
+		scc_ch4_fcounter_hi = ((scc_ch4_freq >> 8) & 0xF);
+	    }
+	    else
+	    {
+		if (scc_ch4_fcounter_hi_cnt)
+		{
+		    scc_ch4_fcounter_hi = ((scc_ch4_fcounter_hi - 1) & 0xF);
+		}
+
+		if (scc_ch4_fcounter_lo_borrow)
+		{
+		    scc_ch4_fcounter_mid = ((scc_ch4_fcounter_mid - 1) & 0xF);
+		}
+
+		scc_ch4_fcounter_lo = ((scc_ch4_fcounter_lo - 1) & 0xF);
+	    }
+
+	    scc_ch4_icounter_cnt = testbit(scc_test_reg, 1) ? (scc_ch4_fcounter_lo_borrow && scc_ch4_fcounter_mid_borrow) : (scc_ch4_fcounter_hi_cnt && scc_ch4_fcounter_hi_borrow);
+
+	    if (testbit(scc_test_reg, 5) && scc_ch4_fchange)
+	    {
+		scc_ch4_icounter = 0x1F;
+	    }
+	    else if (scc_ch4_icounter_cnt)
+	    {
+		scc_ch4_icounter = ((scc_ch4_icounter - 1) & 0x1F);
+	    }
+	}
+
+	scc_ch4_addr_cntr = (~scc_ch4_icounter & 0x1F);
+    }
+
+    void K051649::tickSCC_Channel5Counter()
+    {
+	if (clk_rise)
+	{
+	    if (!scc_ch5_fcounter_ld)
+	    {
+		scc_ch5_cycles = 0;
+	    }
+	    else
+	    {
+		scc_ch5_cycles = ((scc_ch5_cycles + 1) & 0xF);
+	    }
+
+	    scc_ch5_fcounter_lo_borrow = (scc_ch5_fcounter_lo == 0);
+	    scc_ch5_fcounter_mid_borrow = (scc_ch5_fcounter_mid == 0);
+	    scc_ch5_fcounter_hi_borrow = (scc_ch5_fcounter_hi == 0);
+
+	    scc_ch5_fcounter_hi_cnt = (testbit(scc_test_reg, 0) ? true : (scc_ch5_fcounter_lo_borrow && scc_ch5_fcounter_mid_borrow));
+
+	    if (!scc_ch5_fcounter_ld)
+	    {
+		scc_ch5_fcounter_lo = (scc_ch5_freq & 0xF);
+		scc_ch5_fcounter_mid = ((scc_ch5_freq >> 4) & 0xF);
+		scc_ch5_fcounter_hi = ((scc_ch5_freq >> 8) & 0xF);
+	    }
+	    else
+	    {
+		if (scc_ch5_fcounter_hi_cnt)
+		{
+		    scc_ch5_fcounter_hi = ((scc_ch5_fcounter_hi - 1) & 0xF);
+		}
+
+		if (scc_ch5_fcounter_lo_borrow)
+		{
+		    scc_ch5_fcounter_mid = ((scc_ch5_fcounter_mid - 1) & 0xF);
+		}
+
+		scc_ch5_fcounter_lo = ((scc_ch5_fcounter_lo - 1) & 0xF);
+	    }
+
+	    scc_ch5_icounter_cnt = testbit(scc_test_reg, 1) ? (scc_ch5_fcounter_lo_borrow && scc_ch5_fcounter_mid_borrow) : (scc_ch5_fcounter_hi_cnt && scc_ch5_fcounter_hi_borrow);
+
+	    if (testbit(scc_test_reg, 5) && scc_ch5_fchange)
+	    {
+		scc_ch5_icounter = 0x1F;
+	    }
+	    else if (scc_ch5_icounter_cnt)
+	    {
+		scc_ch5_icounter = ((scc_ch5_icounter - 1) & 0x1F);
+	    }
+	}
+
+	scc_ch5_addr_cntr = (~scc_ch5_icounter & 0x1F);
     }
 
     void K051649::tickSCC_Channel1()
@@ -822,7 +1141,11 @@ namespace beekonami
 
     void K051649::tickSCC_Channels45()
     {
-	return;
+	tickSCC_Channel4Out();
+	tickSCC_Channel4Counter();
+
+	tickSCC_Channel5Out();
+	tickSCC_Channel5Counter();
     }
 
     void K051649::tickSCC_Channels()
