@@ -28,6 +28,11 @@ namespace beekonami
 	    void setRGBTable(array<uint8_t, 32> col_table);
 	    void tickCLK(bool clk);
 
+	    array<uint8_t, 32> getDefaultRGBTable()
+	    {
+		return rgb8_table;
+	    }
+
 	    K052535Pins &getPins()
 	    {
 		return current_pins;
