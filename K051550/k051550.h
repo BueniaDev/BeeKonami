@@ -43,6 +43,11 @@ namespace beekonami
 		return (current_state == PowerOn);
 	    }
 
+	    bool isWatchdogReset()
+	    {
+		return (current_state == WatchdogReset);
+	    }
+
 	private:
 	    K051550Pins current_pins;
 
